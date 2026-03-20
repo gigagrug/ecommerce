@@ -1,0 +1,132 @@
+{{ block "content" . }}
+  <section x-data="cartPage">
+    <div class="mx-auto px-4 2xl:px-0">
+      <div class="mb-8 flex items-center justify-between">
+        <h1 class="text-3xl font-bold">Shopping Cart</h1>
+        <span class="text-sm text-neutral-500 dark:text-neutral-400">{{ .PageData.ItemCount }} items selected</span>
+      </div>
+
+      <div class="mt-6 gap-8 lg:flex lg:items-start xl:gap-12">
+        <div class="mx-auto w-full flex-none lg:max-w-2xl xl:max-w-4xl">
+          {{ if eq .PageData.ItemCount 0 }}
+            <div class="py-12 text-center">
+              <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+                <i data-lucide="shopping-cart" class="h-8 w-8 text-neutral-400"></i>
+              </div>
+              <h3 class="text-lg font-medium">Your cart is empty</h3>
+              <p class="mt-1 text-neutral-500">Looks like you haven't added anything yet.</p>
+              <a href="/" class="btn btn-primary mt-6 inline-flex items-center"> Start shopping <i data-lucide="arrow-right" class="ml-2 size-4"></i> </a>
+            </div>
+          {{ else }}
+            <div class="space-y-8">
+              <div class="space-y-4">
+                {{ range .PageData.Items }}
+                  <div class="flex flex-col gap-4 rounded-xl border border-neutral-200 p-4 shadow-sm hover:border-neutral-300 sm:flex-row sm:items-center dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700">
+                    <div class="h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 p-2 dark:border-neutral-800 dark:bg-neutral-800">
+                      <img src="{{ .Image }}" alt="{{ .Name }}" class="h-full w-full object-contain mix-blend-multiply dark:mix-blend-normal" />
+                    </div>
+
+                    <div class="flex flex-1 flex-col gap-4 sm:flex-row sm:justify-between">
+                      <div>
+                        <h3 class="text-base font-bold">
+                          <a href="#" class="hover:underline">{{ .Name }}</a>
+                        </h3>
+                        <div class="mt-2 flex items-center gap-2">
+                          <p class="text-lg font-bold">${{ .Price }}</p>
+                        </div>
+                      </div>
+
+                      <div class="flex items-center justify-between gap-4 sm:flex-col sm:items-end sm:justify-center">
+                        <div class="flex h-9 items-center rounded-lg border border-neutral-200 dark:border-neutral-700">
+                          <button @click="updateQuantity('{{ .ProductId }}', -1)" class="flex h-full w-9 items-center justify-center rounded-l-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                            <i data-lucide="minus" class="size-3"></i>
+                          </button>
+                          <input type="text" class="h-full w-10 border-none bg-transparent text-center text-sm font-medium focus:ring-0" value="{{ .Quantity }}" readonly />
+                          <button @click="updateQuantity('{{ .ProductId }}', 1)" class="flex h-full w-9 items-center justify-center rounded-r-lg hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                            <i data-lucide="plus" class="size-3"></i>
+                          </button>
+                        </div>
+
+                        <button @click="removeItem('{{ .ProductId }}')" class="group flex items-center gap-1 text-sm font-medium text-neutral-500 hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-500">
+                          <i data-lucide="trash-2" class="size-4 group-hover:text-red-600"></i>
+                          <span>Remove</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                {{ end }}
+              </div>
+            </div>
+          {{ end }}
+        </div>
+
+        {{ if gt .PageData.ItemCount 0 }}
+          <div class="mx-auto mt-8 max-w-4xl flex-1 lg:sticky lg:top-24 lg:mt-0 lg:w-full">
+            <div class="card space-y-6 p-6 shadow-sm">
+              <div class="space-y-4">
+                <div class="space-y-2">
+                  <dl class="flex items-center justify-between gap-4">
+                    <dt class="text-lg font-bold">Subtotal ({{ .PageData.ItemCount }} items)</dt>
+                    <dd class="text-lg font-bold">{{ .PageData.Subtotal }}</dd>
+                  </dl>
+                </div>
+              </div>
+              <a href="/checkout" class="btn btn-primary w-full py-3 text-base shadow-lg shadow-blue-700/20">
+                Proceed to Checkout
+                <i data-lucide="arrow-right" class="ml-2 h-4 w-4"></i>
+              </a>
+            </div>
+          </div>
+        {{ end }}
+      </div>
+    </div>
+  </section>
+{{ end }}
+
+{{ block "js" . }}
+  <script>
+    // Utility to read, write, and manage the Cookie cart
+    function getCartCookie() {
+      const match = document.cookie.match(new RegExp("(^| )cart=([^;]+)"));
+      if (match) return JSON.parse(decodeURIComponent(match[2]));
+      return [];
+    }
+
+    function saveCartCookie(cart) {
+      document.cookie = `cart=${encodeURIComponent(JSON.stringify(cart))}; path=/; max-age=2592000`; // 30 days
+      window.location.reload(); // Instantly reload to let Go re-render the new totals
+    }
+
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("cartPage", () => ({
+        init() {
+          this.$nextTick(() => {
+            if (window.lucide) lucide.createIcons();
+          });
+        },
+
+        updateQuantity(id, change) {
+          let cart = getCartCookie();
+          const item = cart.find((i) => i.productId === id);
+          if (item) {
+            item.quantity += change;
+            if (item.quantity < 1) {
+              if (confirm("Remove this item?")) {
+                this.removeItem(id);
+                return;
+              }
+              item.quantity = 1;
+            }
+            saveCartCookie(cart);
+          }
+        },
+
+        removeItem(id) {
+          let cart = getCartCookie();
+          cart = cart.filter((i) => i.productId !== id);
+          saveCartCookie(cart);
+        },
+      }));
+    });
+  </script>
+{{ end }}

@@ -1,0 +1,196 @@
+{{ block "content" . }}
+  {{ template "sellernav" }}
+  <div
+    x-data="dashboardPage({
+      products: [
+        {{ range .PageData.Products }}
+      { id: {{ .ID }}, name: '{{ .Name }}', businessName: '{{ .BusinessName }}', price: {{ .Price }}, stock: {{ .Stock }}, rating: {{ .Rating }}, updated: '{{ .Updated }}', image: '{{ .Image }}' },
+    {{ end }}
+      ]
+  })"
+  >
+    <section class="pt-8">
+      <div class="mx-auto px-4">
+        <h1 class="mb-6 text-2xl font-bold">Dashboard Overview</h1>
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="contents">
+            <div class="card p-5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-neutral-500 dark:text-neutral-400">Total Revenue</p>
+                  <h3 class="mt-1 text-2xl font-bold">{{ .PageData.Stats.Revenue }}</h3>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                  <i data-lucide="dollar-sign" class="size-5"></i>
+                </div>
+              </div>
+              <div class="mt-4 flex items-center text-sm">
+                <span class="flex items-center font-medium text-green-600 dark:text-green-400">
+                  <i data-lucide="trending-up" class="mr-1 size-3"></i>
+                  <span>{{ .PageData.Stats.RevenueGrowth }}</span>
+                </span>
+                <span class="ml-2 text-neutral-500">from last month</span>
+              </div>
+            </div>
+
+            <div class="card p-5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-neutral-500 dark:text-neutral-400">Total Sales</p>
+                  <h3 class="mt-1 text-2xl font-bold">{{ .PageData.Stats.Sales }}</h3>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                  <i data-lucide="shopping-cart" class="size-5"></i>
+                </div>
+              </div>
+              <div class="mt-4 flex items-center text-sm">
+                <span class="flex items-center font-medium text-green-600 dark:text-green-400">
+                  <i data-lucide="trending-up" class="mr-1 size-3"></i>
+                  <span>{{ .PageData.Stats.SalesGrowth }}</span>
+                </span>
+                <span class="ml-2 text-neutral-500">from last month</span>
+              </div>
+            </div>
+
+            <div class="card p-5">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-neutral-500 dark:text-neutral-400">Active Products</p>
+                  <h3 class="mt-1 text-2xl font-bold">{{ .PageData.Stats.Products }}</h3>
+                </div>
+                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                  <i data-lucide="package" class="size-5"></i>
+                </div>
+              </div>
+              <div class="mt-4 flex items-center text-sm">
+                <a href="/admin/products" class="font-medium text-blue-600 hover:underline dark:text-blue-400">Manage Products &rarr;</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-8">
+      <div class="mx-auto px-4">
+        <div class="card overflow-hidden shadow-sm">
+          <div class="relative overflow-x-auto">
+            <table class="w-full text-left text-sm text-neutral-500 dark:text-neutral-400">
+              <thead class="table-head">
+                <tr>
+                  <th scope="col" class="p-4">
+                    <div class="flex items-center">
+                      <input id="checkbox-all" type="checkbox" class="checkbox" />
+                      <label for="checkbox-all" class="sr-only">checkbox</label>
+                    </div>
+                  </th>
+                  <th scope="col" class="px-4 py-3">Product Name</th>
+                  <th scope="col" class="px-4 py-3">Price</th>
+                  <th scope="col" class="px-4 py-3">Stock</th>
+                  <th scope="col" class="px-4 py-3">Rating</th>
+                  <th scope="col" class="px-4 py-3 text-right">Last Updated</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-neutral-200 border-t border-neutral-200 dark:divide-neutral-700 dark:border-neutral-700">
+                <template x-for="product in filteredProducts" :key="product.id">
+                  <tr class="table-row">
+                    <td class="w-4 p-4">
+                      <div class="flex items-center">
+                        <input type="checkbox" class="checkbox" />
+                      </div>
+                    </td>
+
+                    <td class="px-4 py-3">
+                      <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 p-1 dark:border-neutral-700 dark:bg-neutral-800">
+                          <img :src="product.image" :alt="product.name" class="h-full w-full object-contain" />
+                        </div>
+                        <div class="font-medium">
+                          <a :href="`/${product.id}`" class="hover:underline" x-text="product.name"></a>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td class="px-4 py-3 font-medium" x-text="`$${product.price}`"></td>
+
+                    <td class="px-4 py-3">
+                      <div class="flex items-center gap-2">
+                        <div class="h-1.5 w-1.5 rounded-full" :class="product.stock > 10 ? 'bg-green-500' : 'bg-red-500'"></div>
+                        <span x-text="`${product.stock} in stock`"></span>
+                      </div>
+                    </td>
+
+                    <td class="px-4 py-3">
+                      <div class="flex items-center gap-1 text-yellow-400">
+                        <i data-lucide="star" class="size-4 fill-current"></i>
+                        <span class="text-neutral-700 dark:text-neutral-300" x-text="product.rating"></span>
+                      </div>
+                    </td>
+
+                    <td class="px-4 py-3 text-right" x-text="product.updated"></td>
+                  </tr>
+                </template>
+
+                <tr x-show="filteredProducts.length === 0" style="display: none;">
+                  <td colspan="6" class="py-8 text-center text-neutral-500">No products found matching your search.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <nav class="flex flex-col items-center justify-between gap-4 border-t border-neutral-200 p-4 md:flex-row dark:border-neutral-700" aria-label="Table navigation">
+            <span class="text-sm font-normal text-neutral-500 dark:text-neutral-400"> Showing <span class="font-semibold">1-10</span> of <span class="font-semibold" x-text="filteredProducts.length"></span> </span>
+            <ul class="inline-flex h-8 -space-x-px text-sm">
+              <li>
+                <a href="#" class="flex h-8 items-center justify-center rounded-l-lg border border-neutral-300 bg-white px-3 leading-tight text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-white">
+                  <span class="sr-only">Previous</span>
+                  <i data-lucide="chevron-left" class="size-4"></i>
+                </a>
+              </li>
+              <li>
+                <a href="#" class="flex h-8 items-center justify-center border border-neutral-300 bg-blue-50 px-3 leading-tight text-blue-600 hover:bg-blue-100 hover:text-blue-700 dark:border-neutral-700 dark:bg-neutral-700">1</a>
+              </li>
+              <li>
+                <a href="#" class="flex h-8 items-center justify-center border border-neutral-300 bg-white px-3 leading-tight text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-white">2</a>
+              </li>
+              <li>
+                <a href="#" class="flex h-8 items-center justify-center rounded-r-lg border border-neutral-300 bg-white px-3 leading-tight text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 dark:hover:text-white">
+                  <span class="sr-only">Next</span>
+                  <i data-lucide="chevron-right" class="size-4"></i>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </section>
+  </div>
+{{ end }}
+
+{{ block "js" . }}
+  <script>
+    document.addEventListener("alpine:init", () => {
+      // Receive the injected Go data
+      Alpine.data("dashboardPage", (goData) => ({
+        search: "",
+        products: goData.products,
+
+        init() {
+          // Initialize icons on load
+          this.$nextTick(() => lucide.createIcons());
+
+          // Re-initialize icons when the user searches and the table DOM updates!
+          this.$watch("search", () => {
+            this.$nextTick(() => lucide.createIcons());
+          });
+        },
+
+        get filteredProducts() {
+          if (this.search === "") return this.products;
+          return this.products.filter((p) => p.name.toLowerCase().includes(this.search.toLowerCase()));
+        },
+      }));
+    });
+  </script>
+{{ end }}

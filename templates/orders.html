@@ -1,0 +1,170 @@
+{{ block "content" . }}
+  {{ template "sellernav" }}
+  <div
+    x-data="ordersPage({
+      orders: [
+        {{ range .PageData }}
+      { id: '{{ .ID }}', customer: '{{ .Customer }}', email: '{{ .Email }}', date: '{{ .Date }}', status: '{{ .Status }}', total: '{{ .Total }}', itemCount:
+      {{ .ItemCount }}
+      },
+    {{ end }}
+      ]
+  })"
+  >
+    <div class="mx-auto px-4 pt-8">
+      <div class="mb-8 flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold">Orders</h1>
+          <p class="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Manage and fulfill customer orders.</p>
+        </div>
+        <button class="btn btn-ghost">
+          <i data-lucide="download" class="size-4"></i>
+          Export CSV
+        </button>
+      </div>
+
+      <div class="card mb-6 p-4">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div class="relative w-full md:w-80">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <i data-lucide="search" class="size-4 text-neutral-500"></i>
+            </div>
+            <input type="text" x-model="search" class="input pl-9" placeholder="Search order ID or customer..." />
+          </div>
+
+          <div class="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
+            <template x-for="status in ['All', 'Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled']">
+              <button
+                @click="filterStatus = status"
+                class="rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors"
+                :class="filterStatus === status 
+                  ? 'bg-neutral-900 text-white border-neutral-900 dark:bg-white dark:text-neutral-900 dark:border-white' 
+                  : 'bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50 dark:bg-neutral-900 dark:text-neutral-400 dark:border-neutral-800 dark:hover:bg-neutral-800'"
+                x-text="status"
+              ></button>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <div class="card overflow-hidden">
+        <div class="relative overflow-x-auto">
+          <table class="w-full text-left text-sm text-neutral-500 dark:text-neutral-400">
+            <thead class="table-head">
+              <tr>
+                <th class="px-6 py-3">Order ID</th>
+                <th class="px-6 py-3">Customer</th>
+                <th class="px-6 py-3">Date</th>
+                <th class="px-6 py-3">Status</th>
+                <th class="px-6 py-3">Total</th>
+                <th class="px-6 py-3">Items</th>
+                <th class="px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
+              <template x-for="order in filteredOrders" :key="order.id">
+                <tr class="table-row">
+                  <td class="px-6 py-4 font-medium">
+                    <a :href="`/admin/order/${order.id}`" class="link-blue" x-text="order.id"></a>
+                  </td>
+
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-3">
+                      <div class="icon-box icon-box-sm text-xs font-bold text-neutral-600 dark:text-neutral-300" x-text="getInitials(order.customer)"></div>
+                      <div>
+                        <div class="font-medium text-neutral-900 dark:text-white" x-text="order.customer"></div>
+                        <div class="text-xs text-neutral-500" x-text="order.email"></div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td class="px-6 py-4" x-text="order.date"></td>
+
+                  <td class="px-6 py-4">
+                    <span
+                      class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      :class="{
+                          'badge-yellow': order.status === 'Pending',
+                          'badge-blue': order.status === 'Processing' || order.status === 'Shipped',
+                          'badge-green': order.status === 'Delivered',
+                          'badge-red-soft': order.status === 'Cancelled'
+                        }"
+                    >
+                      <span
+                        class="mr-1.5 h-1.5 w-1.5 rounded-full"
+                        :class="{
+                            'bg-yellow-500': order.status === 'Pending',
+                            'bg-blue-600': order.status === 'Processing' || order.status === 'Shipped',
+                            'bg-green-600': order.status === 'Delivered',
+                            'bg-red-600': order.status === 'Cancelled'
+                          }"
+                      ></span>
+                      <span x-text="order.status"></span>
+                    </span>
+                  </td>
+
+                  <td class="px-6 py-4 font-medium text-neutral-900 dark:text-white" x-text="order.total"></td>
+                  <td class="px-6 py-4" x-text="order.itemCount + ' items'"></td>
+
+                  <td class="px-6 py-4 text-right">
+                    <a :href="`/admin/order/${order.id}`" class="btn btn-ghost p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400"> View Details </a>
+                  </td>
+                </tr>
+              </template>
+
+              <tr x-show="filteredOrders.length === 0" style="display: none;">
+                <td colspan="7" class="p-12 text-center text-neutral-500">
+                  <i data-lucide="shopping-bag" class="mx-auto mb-2 size-8 opacity-20"></i>
+                  <p>No orders found matching your criteria.</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="flex items-center justify-between border-t border-neutral-200 p-4 dark:border-neutral-700">
+          <span class="text-sm text-neutral-500 dark:text-neutral-400"> Showing <span class="font-medium">1</span> to <span class="font-medium" x-text="filteredOrders.length"></span> of <span class="font-medium" x-text="filteredOrders.length"></span> entries </span>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost border border-neutral-200 px-3 py-1 text-xs dark:border-neutral-700" disabled>Prev</button>
+            <button class="btn btn-ghost border border-neutral-200 px-3 py-1 text-xs dark:border-neutral-700">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("ordersPage", (goData) => ({
+        search: "",
+        filterStatus: "All",
+        orders: goData.orders,
+
+        init() {
+          this.$nextTick(() => lucide.createIcons());
+          // Refresh icons when the table list changes via filters
+          this.$watch("filteredOrders", () => this.$nextTick(() => lucide.createIcons()));
+        },
+
+        get filteredOrders() {
+          return this.orders.filter((order) => {
+            const term = this.search.toLowerCase();
+            const matchesSearch = order.id.toLowerCase().includes(term) || order.customer.toLowerCase().includes(term) || order.email.toLowerCase().includes(term);
+            const matchesStatus = this.filterStatus === "All" || order.status === this.filterStatus;
+            return matchesSearch && matchesStatus;
+          });
+        },
+
+        getInitials(name) {
+          if (!name) return "??";
+          return name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .substring(0, 2);
+        },
+      }));
+    });
+  </script>
+{{ end }}

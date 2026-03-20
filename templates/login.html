@@ -1,0 +1,152 @@
+{{ block "content" . }}
+  <div class="flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md">
+      <form class="card space-y-6 p-8 shadow-xl dark:shadow-none" onsubmit="handleLogin(event)">
+        <div class="text-center">
+          <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+            <i data-lucide="log-in" class="h-6 w-6 text-blue-600 dark:text-blue-400"></i>
+          </div>
+          <h1 class="text-2xl font-bold tracking-tight">Welcome back</h1>
+          <p class="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Sign in to your account</p>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label for="login_email" class="form-label">Email address</label>
+            <div class="relative">
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <i data-lucide="mail" class="h-5 w-5 text-neutral-400"></i>
+              </div>
+              <input name="email" id="login_email" class="input pl-10" type="email" placeholder="name@domain.com" autocomplete="email" required />
+            </div>
+          </div>
+
+          <div>
+            <label for="login_password" class="form-label">Password</label>
+            <div class="relative">
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <i data-lucide="lock" class="h-5 w-5 text-neutral-400"></i>
+              </div>
+              <input name="password" id="login_password" class="input px-10" type="password" placeholder="••••••••" autocomplete="current-password" required />
+              <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-400 hover:text-neutral-600">
+                <i id="toggleIcon" data-lucide="eye" class="h-5 w-5"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="loginBtn" class="btn btn-primary w-full py-2.5">
+          <span>Login</span>
+          <i data-lucide="loader-circle" class="spinner ml-2 hidden h-4 w-4 animate-spin"></i>
+        </button>
+
+        <p class="text-center text-sm text-neutral-500">
+          Don’t have an account yet?
+          <a href="/register" class="font-medium text-blue-600 hover:underline dark:text-blue-400">Register here</a>
+        </p>
+      </form>
+
+      <div id="statusBox" class="mt-6 hidden rounded-lg p-4 text-sm" role="alert">
+        <div class="flex items-center gap-2">
+          <i id="statusIcon" data-lucide="alert-circle" class="h-5 w-5 shrink-0"></i>
+          <span id="status" class="font-medium"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+{{ end }}
+
+{{ block "js" . }}
+  <script>
+    const statusEl = document.getElementById("status");
+    const statusBox = document.getElementById("statusBox");
+    const statusIcon = document.getElementById("statusIcon");
+    const loginBtn = document.getElementById("loginBtn");
+
+    // Toggle password visibility
+    function togglePassword() {
+      const pwd = document.getElementById("login_password");
+      const icon = document.getElementById("toggleIcon");
+      if (pwd.type === "password") {
+        pwd.type = "text";
+        icon.setAttribute("data-lucide", "eye-off");
+      } else {
+        pwd.type = "password";
+        icon.setAttribute("data-lucide", "eye");
+      }
+      lucide.createIcons();
+    }
+
+    // Helper to toggle loading spinner
+    function setLoading(isLoading) {
+      const span = loginBtn.querySelector("span");
+      const spinner = loginBtn.querySelector(".spinner");
+
+      loginBtn.disabled = isLoading;
+      if (isLoading) {
+        spinner.classList.remove("hidden");
+        span.classList.add("opacity-50");
+      } else {
+        spinner.classList.add("hidden");
+        span.classList.remove("opacity-50");
+      }
+    }
+
+    // Helper to show styled alerts
+    function showAlert(message, type = "error") {
+      statusBox.classList.remove("hidden");
+      statusEl.innerText = message;
+      statusBox.className = "mt-6 rounded-lg p-4 text-sm border";
+
+      if (type === "error") {
+        statusBox.classList.add("bg-red-50", "text-red-800", "border-red-200", "dark:bg-red-900/20", "dark:text-red-400", "dark:border-red-800");
+        statusIcon.setAttribute("data-lucide", "alert-circle");
+      } else {
+        statusBox.classList.add("bg-green-50", "text-green-800", "border-green-200", "dark:bg-green-900/20", "dark:text-green-400", "dark:border-green-800");
+        statusIcon.setAttribute("data-lucide", "check-circle");
+      }
+
+      lucide.createIcons({
+        attrs: { class: "h-5 w-5 shrink-0" },
+        nameAttr: "data-lucide",
+      });
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      const email = document.getElementById("login_email").value;
+      const password = document.getElementById("login_password").value;
+
+      statusBox.classList.add("hidden");
+
+      if (!email || !password) {
+        showAlert("Please enter both your email and password.", "error");
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const resp = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (resp.ok) {
+          showAlert("Login successful! Redirecting...", "success");
+          setTimeout(() => {
+            window.location.href = "/profile";
+          }, 800);
+        } else {
+          const errText = await resp.text();
+          showAlert(errText || "Invalid email or password.", "error");
+        }
+      } catch (error) {
+        showAlert("Network error. Please try again later.", "error");
+      } finally {
+        setLoading(false);
+      }
+    }
+  </script>
+{{ end }}

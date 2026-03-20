@@ -1,0 +1,246 @@
+{{ block "content" . }}
+  {{ template "sellernav" }}
+  <div
+    x-data="orderDetailPage({
+      id: '{{ .PageData.ID }}',
+      status: '{{ .PageData.Status }}',
+      date: '{{ .PageData.Date }}',
+      time: '{{ .PageData.Time }}',
+      items: [
+        {{ range .PageData.Items }}
+      { id: {{ .ID }}, name: '{{ .Name }}', sku: '{{ .SKU }}', price: {{ .Price }}, quantity: {{ .Quantity }}, image: '{{ .Image }}' },
+    {{ end }}
+      ],
+      timeline: [
+        {{ range .PageData.Timeline }}
+      { title: '{{ .Title }}', description: '{{ .Description }}', time: '{{ .Time }}', active: {{ .Active }} },
+    {{ end }}
+      ],
+      customer: {
+        name: '{{ .PageData.Customer.Name }}',
+        email: '{{ .PageData.Customer.Email }}',
+        phone: '{{ .PageData.Customer.Phone }}',
+        previousOrderCount: {{ .PageData.Customer.PreviousOrderCount }}
+      },
+      shippingAddress: `{{ .PageData.ShippingAddress }}`,
+      billingAddress: `{{ .PageData.BillingAddress }}`,
+      pricing: {
+        subtotal: {{ .PageData.Pricing.Subtotal }},
+        shipping: {{ .PageData.Pricing.Shipping }},
+        tax: {{ .PageData.Pricing.Tax }},
+        total: {{ .PageData.Pricing.Total }}
+      },
+      payment: {
+        method: '{{ .PageData.Payment.Method }}',
+        last4: '{{ .PageData.Payment.Last4 }}'
+      }
+  })"
+  >
+    <div class="mx-auto px-4 pt-8">
+      <a href="/admin/orders" class="mb-6 inline-flex items-center gap-2 text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white">
+        <i data-lucide="arrow-left" class="size-4"></i>
+        Back to Orders
+      </a>
+
+      <div>
+        <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div class="flex items-center gap-3">
+              <h1 class="text-2xl font-bold" x-text="`Order ${order.id}`"></h1>
+              <span
+                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                :class="{
+                    'badge-yellow': order.status === 'Pending',
+                    'badge-blue': order.status === 'Processing' || order.status === 'Shipped',
+                    'badge-green': order.status === 'Delivered',
+                    'badge-red-soft': order.status === 'Cancelled'
+                  }"
+                x-text="order.status"
+              ></span>
+            </div>
+            <p class="mt-1 text-sm text-neutral-500 dark:text-neutral-400" x-text="`Placed on ${order.date} at ${order.time}`"></p>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <div class="relative" x-data="{ open: false }">
+              <button @click="open = !open" @click.outside="open = false" class="btn btn-ghost border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+                <span>Update Status</span>
+                <i data-lucide="chevron-down" class="size-4"></i>
+              </button>
+              <div x-show="open" style="display: none;" class="absolute top-full right-0 z-10 mt-1 w-48 rounded-lg border border-neutral-200 bg-white p-1 shadow-lg dark:border-neutral-800 dark:bg-neutral-900" x-transition>
+                <button @click="updateStatus('Processing'); open=false" class="dropdown-item">Mark Processing</button>
+                <button @click="updateStatus('Shipped'); open=false" class="dropdown-item">Mark Shipped</button>
+                <button @click="updateStatus('Delivered'); open=false" class="dropdown-item">Mark Delivered</button>
+                <div class="my-1 h-px bg-neutral-100 dark:bg-neutral-800"></div>
+                <button @click="updateStatus('Cancelled'); open=false" class="dropdown-item text-red-600 dark:text-red-400">Cancel Order</button>
+              </div>
+            </div>
+            <button class="btn btn-primary">
+              <i data-lucide="printer" class="size-4"></i>
+              Print Invoice
+            </button>
+          </div>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-3">
+          <div class="space-y-6 lg:col-span-2">
+            <div class="card overflow-hidden">
+              <div class="card-header">
+                <h2 class="font-semibold">Order Items <span class="ml-1 text-sm font-normal text-neutral-500" x-text="`(${order.items.length})`"></span></h2>
+              </div>
+              <div class="relative overflow-x-auto">
+                <table class="w-full text-left text-sm text-neutral-500 dark:text-neutral-400">
+                  <thead class="table-head">
+                    <tr>
+                      <th class="px-6 py-3">Product</th>
+                      <th class="px-6 py-3">Price</th>
+                      <th class="px-6 py-3">Quantity</th>
+                      <th class="px-6 py-3 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
+                    <template x-for="item in order.items" :key="item.id">
+                      <tr class="table-row">
+                        <td class="px-6 py-4">
+                          <div class="flex items-center gap-3">
+                            <div class="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 p-1 dark:border-neutral-700 dark:bg-neutral-800">
+                              <img :src="item.image" class="h-full w-full object-contain" />
+                            </div>
+                            <div>
+                              <div class="font-medium" x-text="item.name"></div>
+                              <div class="text-xs text-neutral-500" x-text="`SKU: ${item.sku}`"></div>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="px-6 py-4" x-text="formatCurrency(item.price)"></td>
+                        <td class="px-6 py-4" x-text="item.quantity"></td>
+                        <td class="px-6 py-4 text-right font-medium" x-text="formatCurrency(item.price * item.quantity)"></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card p-6">
+              <h3 class="mb-4 font-semibold">Order Activity</h3>
+              <div class="relative ml-3 border-l border-neutral-200 dark:border-neutral-800">
+                <template x-for="(event, index) in order.timeline" :key="index">
+                  <div class="mb-6 ml-6 last:mb-0">
+                    <span class="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border border-white bg-neutral-300 dark:border-neutral-900 dark:bg-neutral-700" :class="{'bg-blue-600! !dark:bg-blue-500': event.active}"></span>
+                    <h4 class="flex items-center gap-2 text-sm font-semibold">
+                      <span x-text="event.title"></span>
+                    </h4>
+                    <p class="mb-1 text-sm text-neutral-500 dark:text-neutral-400" x-text="event.description"></p>
+                    <time class="block text-xs text-neutral-400" x-text="event.time"></time>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-6">
+            <div class="card p-6">
+              <h3 class="mb-4 font-semibold">Customer</h3>
+              <div class="mb-6 flex items-center gap-3">
+                <div class="icon-box icon-box-md font-bold text-neutral-600 dark:text-neutral-300" x-text="getInitials(order.customer.name)"></div>
+                <div>
+                  <div class="font-medium" x-text="order.customer.name"></div>
+                  <div class="cursor-pointer text-xs text-blue-600 hover:underline dark:text-blue-400" x-text="`${order.customer.previousOrderCount} Previous Orders`"></div>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <div class="flex items-start gap-3">
+                  <i data-lucide="mail" class="mt-0.5 size-4 text-neutral-400"></i>
+                  <a :href="`mailto:${order.customer.email}`" class="text-sm text-neutral-600 hover:text-blue-600 dark:text-neutral-400 dark:hover:text-blue-400" x-text="order.customer.email"></a>
+                </div>
+                <div class="flex items-start gap-3">
+                  <i data-lucide="phone" class="mt-0.5 size-4 text-neutral-400"></i>
+                  <span class="text-sm text-neutral-600 dark:text-neutral-400" x-text="order.customer.phone"></span>
+                </div>
+              </div>
+
+              <hr class="my-4 border-neutral-100 dark:border-neutral-800" />
+
+              <div class="space-y-4">
+                <div>
+                  <h4 class="mb-1 text-xs font-bold tracking-wider text-neutral-500 uppercase">Shipping Address</h4>
+                  <p class="text-sm text-neutral-600 dark:text-neutral-300" x-html="order.shippingAddress.replace(/\n/g, '<br>')"></p>
+                </div>
+                <div>
+                  <h4 class="mb-1 text-xs font-bold tracking-wider text-neutral-500 uppercase">Billing Address</h4>
+                  <p class="text-sm text-neutral-600 dark:text-neutral-300" x-html="order.billingAddress.replace(/\n/g, '<br>')"></p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card p-6">
+              <h3 class="mb-4 font-semibold">Order Summary</h3>
+              <div class="space-y-2 text-sm">
+                <div class="flex justify-between text-neutral-600 dark:text-neutral-400">
+                  <span>Subtotal</span>
+                  <span x-text="formatCurrency(order.pricing.subtotal)"></span>
+                </div>
+                <div class="flex justify-between text-neutral-600 dark:text-neutral-400">
+                  <span>Shipping</span>
+                  <span x-text="formatCurrency(order.pricing.shipping)"></span>
+                </div>
+                <div class="flex justify-between text-neutral-600 dark:text-neutral-400">
+                  <span>Tax</span>
+                  <span x-text="formatCurrency(order.pricing.tax)"></span>
+                </div>
+                <hr class="border-neutral-100 dark:border-neutral-800" />
+                <div class="flex justify-between text-base font-bold">
+                  <span>Total</span>
+                  <span x-text="formatCurrency(order.pricing.total)"></span>
+                </div>
+              </div>
+              <div class="mt-6 rounded-lg bg-neutral-50 p-3 text-xs dark:bg-neutral-900">
+                <span class="font-semibold">Payment:</span>
+                <span class="text-neutral-600 dark:text-neutral-400" x-text="`${order.payment.method} ending in ${order.payment.last4}`"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("orderDetailPage", (goOrderData) => ({
+        order: goOrderData,
+
+        init() {
+          this.$nextTick(() => {
+            if (window.lucide) lucide.createIcons();
+          });
+        },
+
+        getInitials(name) {
+          if (!name) return "??";
+          return name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .substring(0, 2);
+        },
+
+        async updateStatus(newStatus) {
+          // You would typically send a POST request to your Go backend here:
+          // const res = await fetch(`/api/seller/orders/${this.order.id}/status`, { ... })
+
+          this.order.status = newStatus;
+          // Note: In production, you'd likely refresh the timeline data from the response
+          alert(`Order marked as ${newStatus}`);
+        },
+
+        formatCurrency(v) {
+          return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
+        },
+      }));
+    });
+  </script>
+{{ end }}

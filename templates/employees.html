@@ -1,0 +1,247 @@
+{{ block "content" . }}
+  {{ template "sellernav" }}
+  <div
+    x-data="employeesPage({
+      availableRoles: [
+        {{ range .PageData.Roles }}'{{ . }}',{{ end }}
+      ],
+      employees: [
+        {{ range .PageData.Employees }}
+      { id: {{ .ID }}, name: '{{ .Name }}', email: '{{ .Email }}', roles: [{{ range .Roles }}'{{ . }}',{{ end }}], permissions: [{{ range .Permissions }}'{{ . }}',{{ end }}], status: '{{ .Status }}' },
+    {{ end }}
+      ]
+  })"
+  >
+    <div class="mx-auto px-4 pt-8">
+      <div class="mb-8 flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold">Team Members</h1>
+          <p class="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Manage access, roles, and permissions.</p>
+        </div>
+      </div>
+
+      <div class="card mb-8 overflow-hidden">
+        <div class="card-header">
+          <h2 class="font-semibold">Add New Employee</h2>
+        </div>
+        <div class="p-6">
+          <form @submit.prevent="createEmployee" class="space-y-6">
+            <div class="flex flex-col gap-4 md:flex-row md:items-start">
+              <div class="flex-1">
+                <label class="form-label mb-1 block text-sm font-medium">Email Address</label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <i data-lucide="mail" class="size-4 text-neutral-500"></i>
+                  </div>
+                  <input type="email" x-model="employeeForm.email" required class="input pl-9" placeholder="colleague@example.com" />
+                </div>
+              </div>
+
+              <div class="flex-1">
+                <label class="form-label mb-1 block text-sm font-medium">Password</label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <i data-lucide="lock" class="size-4 text-neutral-500"></i>
+                  </div>
+                  <input type="password" x-model="employeeForm.password" required class="input pl-9" placeholder="••••••••" minlength="8" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label class="form-label mb-2 block text-sm font-medium">Assign Roles</label>
+              <div class="flex flex-wrap gap-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+                <template x-for="role in availableRoles" :key="role">
+                  <label class="flex cursor-pointer items-center gap-2 hover:opacity-80">
+                    <input type="checkbox" :value="role" x-model="employeeForm.roles" class="checkbox" />
+                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300" x-text="role"></span>
+                  </label>
+                </template>
+              </div>
+            </div>
+
+            <div class="flex justify-end border-t border-neutral-100 pt-4 dark:border-neutral-800">
+              <button type="submit" :disabled="isAdding || employeeForm.roles.length === 0" class="btn btn-primary w-full py-2.5 md:w-auto">
+                <i x-show="!isAdding" data-lucide="user-plus" class="mr-2 size-4"></i>
+                <i x-show="isAdding" data-lucide="loader-circle" class="mr-2 size-4 animate-spin" style="display: none;"></i>
+                <span x-text="isAdding ? 'Adding...' : 'Add Employee'"></span>
+              </button>
+            </div>
+          </form>
+
+          <div x-show="statusMessage" x-transition style="display: none;" class="mt-4 rounded-lg p-4 text-sm" :class="statusSuccess ? 'alert-success border border-green-200 bg-green-50 text-green-800' : 'alert-error border border-red-200 bg-red-50 text-red-800'">
+            <div class="flex items-center gap-2">
+              <i :data-lucide="statusSuccess ? 'check-circle' : 'alert-circle'" class="size-4"></i>
+              <span x-text="statusMessage" class="font-medium"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card overflow-hidden">
+        <div class="border-b border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <h2 class="text-lg font-bold">Current Staff</h2>
+            <div class="relative w-full md:w-64">
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <i data-lucide="search" class="size-4 text-neutral-500"></i>
+              </div>
+              <input type="text" x-model="search" class="input py-2 pl-9" placeholder="Search members..." />
+            </div>
+          </div>
+        </div>
+
+        <div class="relative overflow-x-auto">
+          <table class="w-full text-left text-sm text-neutral-500 dark:text-neutral-400">
+            <thead class="table-head">
+              <tr>
+                <th scope="col" class="px-6 py-3">Member</th>
+                <th scope="col" class="px-6 py-3">Roles</th>
+                <th scope="col" class="px-6 py-3">Status</th>
+                <th scope="col" class="px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
+              <template x-for="emp in filteredEmployees" :key="emp.id">
+                <tr class="table-row hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
+                  <td class="px-6 py-4">
+                    <div class="flex items-center gap-3">
+                      <div class="icon-box icon-box-sm font-bold text-neutral-600 dark:text-neutral-300" x-text="getInitials(emp.name)"></div>
+                      <div>
+                        <a :href="`/admin/employee/${emp.id}`" class="font-medium text-neutral-900 hover:text-blue-600 hover:underline dark:text-white dark:hover:text-blue-400" x-text="emp.name"> </a>
+                        <div class="text-xs text-neutral-500" x-text="emp.email"></div>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td class="px-6 py-4">
+                    <div class="flex flex-wrap gap-1">
+                      <template x-for="role in emp.roles" :key="role">
+                        <span class="badge-blue inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset">
+                          <span x-text="role"></span>
+                        </span>
+                      </template>
+                    </div>
+                  </td>
+
+                  <td class="px-6 py-4">
+                    <span class="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium" :class="emp.status.toLowerCase() === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'">
+                      <span class="h-1.5 w-1.5 rounded-full" :class="emp.status.toLowerCase() === 'active' ? 'bg-green-500' : 'bg-yellow-500'"></span>
+                      <span class="capitalize" x-text="emp.status"></span>
+                    </span>
+                  </td>
+
+                  <td class="px-6 py-4 text-right">
+                    <button @click="removeEmployee(emp.id)" class="btn-icon-danger" title="Remove Member">
+                      <i data-lucide="trash-2" class="size-4"></i>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+
+              <tr x-show="filteredEmployees.length === 0" style="display: none;">
+                <td colspan="5" class="p-12 text-center text-neutral-500">
+                  <i data-lucide="users" class="mx-auto mb-2 size-8 opacity-20"></i>
+                  <p>No team members found.</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("employeesPage", (goData) => ({
+        search: "",
+        isAdding: false,
+        statusMessage: "",
+        statusSuccess: false,
+
+        availableRoles: goData.availableRoles,
+        employees: goData.employees,
+
+        employeeForm: {
+          email: "",
+          password: "",
+          roles: [], // Array instead of string
+        },
+
+        init() {
+          this.$nextTick(() => lucide.createIcons());
+          this.$watch("search", () => this.$nextTick(() => lucide.createIcons()));
+          this.$watch("employees", () => this.$nextTick(() => lucide.createIcons()));
+        },
+
+        get filteredEmployees() {
+          if (this.search === "") return this.employees;
+          const term = this.search.toLowerCase();
+          return this.employees.filter((e) => e.name.toLowerCase().includes(term) || e.email.toLowerCase().includes(term));
+        },
+
+        async createEmployee() {
+          if (this.employeeForm.roles.length === 0) {
+            alert("Please select at least one role.");
+            return;
+          }
+
+          this.isAdding = true;
+          this.statusMessage = "";
+
+          try {
+            const res = await fetch("/api/admin/employee/invite", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(this.employeeForm),
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            this.statusSuccess = true;
+            this.statusMessage = `Employee ${this.employeeForm.email} added successfully!`;
+
+            this.employeeForm.email = "";
+            this.employeeForm.password = "";
+            this.employeeForm.roles = [];
+
+            setTimeout(() => window.location.reload(), 1500);
+          } catch (e) {
+            this.statusSuccess = false;
+            this.statusMessage = e.message || "Failed to add employee.";
+          } finally {
+            this.isAdding = false;
+            if (!this.statusSuccess) {
+              setTimeout(() => {
+                this.statusMessage = "";
+              }, 5000);
+            }
+          }
+        },
+
+        async removeEmployee(id) {
+          if (!confirm("Are you sure you want to remove this team member?")) return;
+          try {
+            const res = await fetch(`/api/admin/employee/${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error(await res.text());
+
+            this.employees = this.employees.filter((e) => e.id !== id);
+          } catch (e) {
+            alert(`Failed to remove employee: ${e.message}`);
+          }
+        },
+
+        getInitials(name) {
+          if (!name) return "??";
+          return name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .substring(0, 2);
+        },
+      }));
+    });
+  </script>
+{{ end }}

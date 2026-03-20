@@ -1,0 +1,246 @@
+{{ block "content" . }}
+  {{ template "profilenav" }}
+  <div x-data="userSupport" class="mx-auto px-4 py-8 md:py-12">
+    <div class="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-3xl font-bold tracking-tight">Support Tickets</h1>
+        <p class="mt-2 text-neutral-500 dark:text-neutral-400">View your support history and get help with your orders.</p>
+      </div>
+      <button @click="showNewForm = true" class="btn btn-primary whitespace-nowrap"><i data-lucide="plus" class="mr-2 size-4"></i> New Ticket</button>
+    </div>
+
+    <div class="space-y-4">
+      <template x-for="ticket in tickets" :key="ticket.id">
+        <div @click="openTicket(ticket)" class="card cursor-pointer p-5 transition-shadow hover:shadow-md dark:hover:bg-neutral-900/50">
+          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div class="mb-1 flex items-center gap-3">
+                <span class="text-sm font-bold text-blue-600 dark:text-blue-400" x-text="ticket.id"></span>
+                <span
+                  class="rounded-full px-2.5 py-0.5 text-xs font-bold"
+                  :class="{
+                    'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400': ticket.status === 'Open',
+                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400': ticket.status === 'Pending',
+                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400': ticket.status === 'Resolved'
+                  }"
+                  x-text="ticket.status"
+                ></span>
+              </div>
+              <h3 class="text-lg font-semibold text-neutral-900 dark:text-white" x-text="ticket.subject"></h3>
+            </div>
+            <div class="text-sm font-medium text-neutral-500">Updated <span x-text="ticket.lastUpdated"></span></div>
+          </div>
+        </div>
+      </template>
+
+      <template x-if="tickets.length === 0">
+        <div class="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-neutral-200 py-16 text-center dark:border-neutral-800">
+          <div class="mb-4 rounded-full bg-neutral-100 p-4 text-neutral-400 dark:bg-neutral-800">
+            <i data-lucide="inbox" class="size-8"></i>
+          </div>
+          <h3 class="text-lg font-bold text-neutral-900 dark:text-white">No support tickets</h3>
+          <p class="mt-1 text-neutral-500">You haven't submitted any requests yet.</p>
+        </div>
+      </template>
+    </div>
+
+    <div x-show="activeTicket" class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-4 backdrop-blur-sm" style="display: none;" x-transition>
+      <div @click.outside="activeTicket = null" class="w-full max-w-2xl rounded-xl border border-neutral-200 bg-white shadow-xl dark:border-neutral-800 dark:bg-neutral-900">
+        <template x-if="activeTicket">
+          <div>
+            <div class="flex items-center justify-between border-b border-neutral-200 p-5 dark:border-neutral-800">
+              <div>
+                <h2 class="text-lg font-bold" x-text="activeTicket.subject"></h2>
+                <p class="text-sm font-medium text-blue-600 dark:text-blue-400" x-text="activeTicket.id"></p>
+              </div>
+              <button @click="activeTicket = null" class="rounded-full p-2 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                <i data-lucide="x" class="size-5"></i>
+              </button>
+            </div>
+
+            <div class="p-6">
+              <p class="mb-2 text-xs font-bold tracking-wider text-neutral-400 uppercase">Conversation History</p>
+              <div class="max-h-[50vh] overflow-y-auto rounded-lg bg-neutral-50 p-5 text-sm leading-relaxed whitespace-pre-wrap text-neutral-700 dark:bg-neutral-950 dark:text-neutral-300" x-text="activeTicket.message"></div>
+            </div>
+
+            <div class="border-t border-neutral-200 bg-neutral-50 p-6 dark:border-neutral-800 dark:bg-neutral-900/50" x-show="activeTicket.status !== 'Resolved'">
+              <label class="form-label mb-2 block text-sm font-medium">Your Reply</label>
+              <textarea x-model="replyText" rows="3" class="input py-2" placeholder="Type your response to the support team..."></textarea>
+
+              <div class="mt-4 flex flex-wrap gap-3">
+                <button @click="sendUserReply" class="btn btn-primary" :disabled="!replyText.trim() || isLoading">
+                  <span x-show="!isLoading">Send Reply</span>
+                  <i data-lucide="loader-circle" class="size-4 animate-spin" x-show="isLoading" style="display: none;"></i>
+                </button>
+
+                <button @click="markResolved" class="btn btn-ghost border border-neutral-200 text-green-600 hover:bg-green-50 dark:border-neutral-700 dark:hover:bg-green-900/20" :disabled="isLoading"><i data-lucide="check-circle" class="mr-2 size-4"></i> Mark as Resolved</button>
+              </div>
+            </div>
+
+            <div class="border-t border-neutral-200 p-6 text-center dark:border-neutral-800" x-show="activeTicket.status === 'Resolved'" style="display: none;">
+              <div class="mx-auto mb-2 flex size-10 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                <i data-lucide="check" class="size-5"></i>
+              </div>
+              <p class="text-sm font-medium text-neutral-900 dark:text-white">This ticket has been marked as resolved.</p>
+              <p class="mt-1 text-xs text-neutral-500">If you need further assistance, please create a new ticket.</p>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <div x-show="showNewForm" class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-4 backdrop-blur-sm" style="display: none;" x-transition>
+      <div @click.outside="showNewForm = false" class="w-full max-w-lg rounded-xl border border-neutral-200 bg-white shadow-xl dark:border-neutral-800 dark:bg-neutral-900">
+        <div class="flex items-center justify-between border-b border-neutral-200 p-5 dark:border-neutral-800">
+          <h2 class="text-lg font-bold">Create Support Ticket</h2>
+          <button @click="showNewForm = false" class="rounded-full p-2 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800">
+            <i data-lucide="x" class="size-5"></i>
+          </button>
+        </div>
+
+        <form @submit.prevent="submitTicket" class="space-y-4 p-6">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Subject</label>
+            <select x-model="newTicket.subject" class="input select bg-neutral-50 dark:bg-neutral-950" required>
+              <option value="" disabled selected>Select a topic</option>
+              <option value="Where is my order?">Where is my order?</option>
+              <option value="Request a return/refund">Request a return/refund</option>
+              <option value="Product question">Product question</option>
+              <option value="Other inquiry">Other inquiry</option>
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Message</label>
+            <textarea x-model="newTicket.message" rows="5" class="input bg-neutral-50 py-3 dark:bg-neutral-950" required placeholder="Please describe your issue in detail..."></textarea>
+          </div>
+
+          <div class="flex gap-3 pt-4">
+            <button type="button" @click="showNewForm = false" class="btn btn-ghost w-full">Cancel</button>
+            <button type="submit" id="submitBtn" class="btn btn-primary w-full" :disabled="isLoading">
+              <span x-show="!isLoading">Submit Ticket</span>
+              <i data-lucide="loader-circle" class="size-4 animate-spin" x-show="isLoading" style="display: none;"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{{ end }}
+
+{{ block "js" . }}
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("userSupport", () => ({
+        profileName: `{{ .PageData.Name }}`,
+        profileEmail: `{{ .PageData.Email }}`,
+
+        tickets: [
+          {{ range .PageData.Tickets }}
+          { id: '{{ .ID }}', subject: '{{ .Subject }}', status: '{{ .Status }}', lastUpdated: '{{ .LastUpdated }}', message: `{{ .Message }}` },
+          {{ end }}
+        ],
+
+        activeTicket: null,
+        showNewForm: false,
+        isLoading: false,
+        newTicket: { subject: '', message: '' },
+				replyText: "",
+
+        init() {
+          this.$nextTick(() => lucide.createIcons());
+          this.$watch("activeTicket", () => this.$nextTick(() => lucide.createIcons()));
+          this.$watch("showNewForm", () => this.$nextTick(() => lucide.createIcons()));
+        },
+
+        openTicket(ticket) {
+          this.activeTicket = { ...ticket };
+        },
+
+        async submitTicket() {
+          this.isLoading = true;
+
+          try {
+            // Reusing the exact same API endpoint created for the homepage!
+            const res = await fetch("/api/support", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: this.profileName,
+                email: this.profileEmail,
+                subject: this.newTicket.subject,
+                message: this.newTicket.message
+              }),
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            // Reload the page to instantly fetch the new ticket ID from the database
+            window.location.reload();
+
+          } catch (error) {
+            alert(`Failed to submit ticket: ${error.message}`);
+            this.isLoading = false;
+          }
+        },
+				async sendUserReply() {
+          this.isLoading = true;
+          try {
+            const res = await fetch(`/api/profile/support/${this.activeTicket.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reply: this.replyText, markResolved: false }),
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            // Update local UI
+            const index = this.tickets.findIndex((t) => t.id === this.activeTicket.id);
+            if (index !== -1) {
+              this.tickets[index].status = "Open"; // Reopens for the admin
+              this.tickets[index].lastUpdated = "Just now";
+              this.tickets[index].message += `\n\n--- Customer Reply (Just now) ---\n${this.replyText}`;
+            }
+
+            this.activeTicket = null;
+            this.replyText = "";
+          } catch (error) {
+            alert(`Failed to send reply: ${error.message}`);
+          } finally {
+            this.isLoading = false;
+          }
+        },
+
+        async markResolved() {
+          if (!confirm("Are you sure your issue is fully resolved?")) return;
+          this.isLoading = true;
+          try {
+            const res = await fetch(`/api/profile/support/${this.activeTicket.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ reply: this.replyText, markResolved: true }),
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            // Update local UI
+            const index = this.tickets.findIndex((t) => t.id === this.activeTicket.id);
+            if (index !== -1) {
+              this.tickets[index].status = "Resolved";
+              this.tickets[index].lastUpdated = "Just now";
+              if (this.replyText.trim() !== "") {
+                this.tickets[index].message += `\n\n--- Customer Reply (Just now) ---\n${this.replyText}`;
+              }
+            }
+
+            this.activeTicket = null;
+            this.replyText = "";
+          } catch (error) {
+            alert(`Failed to resolve ticket: ${error.message}`);
+          } finally {
+            this.isLoading = false;
+          }
+        },
+      }));
+    });
+  </script>
+{{ end }}

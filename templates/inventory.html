@@ -1,0 +1,383 @@
+{{ block "content" . }}
+  {{ template "sellernav" }}
+  <div
+    x-data="productMgt({
+      groups: [
+        {{ range .PageData }}
+      { id: {{ .ID }}, name: '{{ .Name }}', variationTypes: [{{ range .VariationTypes }}'{{ . }}',{{ end }}], expanded: {{ .Expanded }}, products: [
+      {{ range .Products }}
+        { id: {{ .ID }}, name: '{{ .Name }}', description: '{{ .Description }}', price: {{ .Price }}, discountPrice: {{ if .DiscountPrice }}{{ .DiscountPrice }}{{ else }}null{{ end }}, stock: {{ .Stock }}, gallery: [{{ range .Gallery }}'{{ . }}',{{ end }}], variations: { {{ range $k, $v := .Variations }}'{{ $k }}': '{{ $v }}',{{ end }} }, shipping: { isFree: {{ .Shipping.IsFree }} } },
+      {{ end }}
+      ] },
+    {{ end }}
+      ]
+  })"
+  >
+    <div class="mx-auto px-4 pt-8">
+      <div class="mb-8 flex items-center justify-between">
+        <div>
+          <h1 class="text-2xl font-bold">Inventory Management</h1>
+          <p class="mt-1 text-sm text-neutral-500 dark:text-neutral-400">Define Variation Types in Groups, then fill them for Products.</p>
+        </div>
+        <button x-show="viewState === 'addProduct'" @click="resetToCreateGroup" style="display: none;" class="btn btn-ghost text-sm"><i data-lucide="arrow-left" class="mr-2 size-4"></i> Back to Groups</button>
+      </div>
+
+      <div class="card mb-8 overflow-hidden border-l-4" :class="viewState === 'createGroup' ? 'border-l-blue-600' : 'border-l-green-600'">
+        <div class="card-header border-b border-neutral-100 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900">
+          <h2 class="text-lg font-bold" x-text="viewState === 'createGroup' ? 'Step 1: Create Product Group & Variations' : `Step 2: Add Product to '${selectedGroup?.name}'`"></h2>
+          <p class="text-sm text-neutral-500" x-text="viewState === 'createGroup' ? 'Define the container and what attributes (Color, Size) items inside will have.' : 'Fill in the specific details, images, and variation values.'"></p>
+        </div>
+
+        <div class="p-6">
+          <form @submit.prevent="submitForm">
+            <div x-show="viewState === 'createGroup'" x-transition>
+              <div class="grid gap-8 md:grid-cols-2">
+                <div>
+                  <label class="form-label">Group Name</label>
+                  <input type="text" x-model="groupForm.name" :required="viewState === 'createGroup'" class="input" placeholder="e.g. Summer T-Shirts Collection" />
+                  <p class="mt-2 text-xs text-neutral-400">This acts as the main folder for these variations.</p>
+                </div>
+                <div>
+                  <div class="mb-2 flex items-center justify-between">
+                    <label class="form-label">Variation Types</label>
+                    <button type="button" @click="addVariationType" class="text-xs font-medium text-blue-600 hover:underline">+ Add Type</button>
+                  </div>
+                  <div class="space-y-2">
+                    <template x-for="(type, index) in groupForm.variationTypes" :key="index">
+                      <div class="flex gap-2">
+                        <input type="text" x-model="groupForm.variationTypes[index]" :required="viewState === 'createGroup'" class="input" placeholder="e.g. Color, Size, Material" />
+                        <button type="button" @click="removeVariationType(index)" class="btn btn-ghost px-2 text-red-500" :disabled="groupForm.variationTypes.length === 1">
+                          <i data-lucide="trash-2" class="size-4"></i>
+                        </button>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div x-show="viewState === 'addProduct'" x-transition style="display: none;" class="space-y-8">
+              <div class="rounded-lg border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900/30 dark:bg-blue-900/10">
+                <h3 class="mb-4 text-sm font-bold text-blue-900 dark:text-blue-100">Variation Values</h3>
+                <div class="grid gap-4 md:grid-cols-3">
+                  <template x-for="vType in selectedGroup?.variationTypes" :key="vType">
+                    <div>
+                      <label class="mb-1 block text-xs font-medium text-neutral-500 uppercase" x-text="vType"></label>
+                      <input type="text" x-model="productForm.variations[vType]" :required="viewState === 'addProduct'" class="input bg-white dark:bg-black" :placeholder="`Enter ${vType}...`" />
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <div class="grid gap-6 md:grid-cols-2">
+                <div class="md:col-span-2">
+                  <label class="form-label">Product Name</label>
+                  <input type="text" x-model="productForm.name" :required="viewState === 'addProduct'" class="input" placeholder="e.g. Graphic Tee - Midnight Blue (Large)" />
+                </div>
+                <div class="md:col-span-2">
+                  <label class="form-label">Description</label>
+                  <textarea rows="3" class="input resize-none py-2" x-model="productForm.description" :required="viewState === 'addProduct'" placeholder="Detailed description for this specific item..."></textarea>
+                </div>
+
+                <div>
+                  <label class="form-label">Base Price</label>
+                  <div class="relative">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><i data-lucide="dollar-sign" class="size-4 text-neutral-500"></i></div>
+                    <input type="number" step="0.01" x-model="productForm.price" :required="viewState === 'addProduct'" class="input pl-9" placeholder="0.00" />
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label">Discount Price (Optional)</label>
+                  <div class="relative">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><i data-lucide="tag" class="size-4 text-neutral-500"></i></div>
+                    <input type="number" step="0.01" x-model="productForm.discountPrice" class="input pl-9" placeholder="0.00" />
+                  </div>
+                </div>
+                <div>
+                  <label class="form-label">Stock Quantity</label>
+                  <input type="number" x-model="productForm.stock" :required="viewState === 'addProduct'" class="input" placeholder="0" />
+                </div>
+
+                <div class="flex items-center pt-8">
+                  <label class="flex cursor-pointer items-center gap-3">
+                    <input type="checkbox" x-model="productForm.isFreeShipping" class="checkbox size-5 rounded border-neutral-300" />
+                    <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Offer Free Shipping on this variation</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <div class="mb-2 flex items-center justify-between">
+                  <label class="form-label">Image Gallery URLs</label>
+                  <button type="button" @click="addImageUrl" class="text-xs font-medium text-blue-600 hover:underline">+ Add Image</button>
+                </div>
+                <div class="space-y-2">
+                  <template x-for="(img, index) in productForm.gallery" :key="index">
+                    <div class="flex gap-2">
+                      <div class="relative flex-1">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><i data-lucide="image" class="size-4 text-neutral-500"></i></div>
+                        <input type="url" x-model="productForm.gallery[index]" :required="viewState === 'addProduct'" class="input pl-9" placeholder="https://example.com/image.jpg" />
+                      </div>
+                      <button type="button" @click="removeImageUrl(index)" class="btn btn-ghost px-2 text-red-500" :disabled="productForm.gallery.length === 1">
+                        <i data-lucide="trash-2" class="size-4"></i>
+                      </button>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-8 flex items-center justify-between border-t border-neutral-200 pt-6 dark:border-neutral-800">
+              <span class="text-sm font-medium text-red-500" x-show="errorMessage" x-text="errorMessage"></span>
+              <button type="submit" :disabled="isSubmitting" class="btn ml-auto w-full md:w-auto" :class="viewState === 'createGroup' ? 'btn-primary' : 'bg-green-600 hover:bg-green-700 text-white'">
+                <i x-show="!isSubmitting" :data-lucide="viewState === 'createGroup' ? 'folder-plus' : 'save'" class="mr-2 size-4"></i>
+                <i x-show="isSubmitting" data-lucide="loader-circle" class="mr-2 size-4 animate-spin" style="display: none;"></i>
+                <span x-text="isSubmitting ? 'Processing...' : (viewState === 'createGroup' ? 'Create Group' : 'Save Product')"></span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card overflow-hidden">
+        <div class="border-b border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+          <h2 class="text-lg font-bold">Product Groups</h2>
+        </div>
+        <div class="relative overflow-x-auto">
+          <table class="w-full text-left text-sm text-neutral-500 dark:text-neutral-400">
+            <tbody class="divide-y divide-neutral-200 dark:divide-neutral-700">
+              {{ if eq (len .PageData) 0 }}
+                <tr>
+                  <td class="p-12 text-center">
+                    <i data-lucide="package-search" class="mx-auto mb-2 size-8 opacity-20"></i>
+                    <p>No inventory groups found. Create one above to get started.</p>
+                  </td>
+                </tr>
+              {{ end }}
+
+
+              <template x-for="group in groups" :key="group.id">
+                <tr class="bg-white hover:bg-neutral-50 dark:bg-neutral-900 dark:hover:bg-neutral-800">
+                  <td class="w-full px-6 py-4">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <button @click="group.expanded = !group.expanded" class="rounded p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                          <i class="size-4 text-neutral-400 transition-transform" :class="group.expanded ? 'rotate-90' : ''" data-lucide="chevron-right"></i>
+                        </button>
+                        <div>
+                          <div class="flex items-center gap-2 font-bold text-neutral-900 dark:text-white">
+                            <i data-lucide="folder" class="size-4 text-blue-500"></i>
+                            <span x-text="group.name"></span>
+                            <span class="badge-neutral text-xs" x-text="`${group.products.length} items`"></span>
+                          </div>
+                          <div class="mt-1 flex gap-2">
+                            <template x-for="type in group.variationTypes">
+                              <span class="rounded border border-neutral-200 bg-neutral-100 px-1.5 py-0.5 text-xs text-neutral-400 dark:border-neutral-700 dark:bg-neutral-800" x-text="type"></span>
+                            </template>
+                          </div>
+                        </div>
+                      </div>
+                      <button @click="openAddProduct(group)" class="btn btn-xs border border-green-200 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-900/20 dark:text-green-400"><i data-lucide="plus" class="mr-1 size-3"></i> Add Product</button>
+                    </div>
+
+                    <div x-show="group.expanded" x-transition style="display: none;" class="mt-4 border-t border-neutral-100 pt-4 pl-8 dark:border-neutral-800">
+                      <table class="w-full text-sm">
+                        <thead class="text-xs text-neutral-500 uppercase">
+                          <tr>
+                            <th class="py-2 text-left">Product Details</th>
+                            <th class="py-2 text-left">Price</th>
+                            <th class="py-2 text-left">Stock</th>
+                            <th class="py-2 text-right">Extras</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-100 dark:divide-neutral-800">
+                          <template x-for="prod in group.products" :key="prod.id">
+                            <tr>
+                              <td class="py-3">
+                                <div class="flex items-center gap-3">
+                                  <div class="size-10 overflow-hidden rounded border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-900">
+                                    <img :src="prod.gallery[0] || 'https://placehold.co/100'" class="h-full w-full object-cover" />
+                                  </div>
+                                  <div>
+                                    <div class="font-medium text-neutral-900 dark:text-white" x-text="prod.name"></div>
+                                    <div class="mt-1 flex flex-wrap gap-1">
+                                      <template x-for="(val, key) in prod.variations">
+                                        <span class="rounded bg-neutral-100 px-1.5 text-[10px] tracking-wider text-neutral-500 uppercase dark:bg-neutral-800" x-text="`${key}: ${val}`"></span>
+                                      </template>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td class="py-3">
+                                <div class="flex flex-col">
+                                  <span :class="prod.discountPrice ? 'text-xs line-through text-neutral-400' : ''" x-text="`$${prod.price}`"></span>
+                                  <span x-show="prod.discountPrice" class="font-medium text-red-600" x-text="`$${prod.discountPrice}`"></span>
+                                </div>
+                              </td>
+                              <td class="py-3">
+                                <span :class="prod.stock > 0 ? 'text-green-600' : 'text-red-500'" x-text="prod.stock > 0 ? `${prod.stock} in stock` : 'Out of stock'"></span>
+                              </td>
+                              <td class="py-3 text-right">
+                                <div class="flex items-center justify-end gap-3 text-xs text-neutral-400">
+                                  <span x-show="prod.shipping?.isFree" class="flex items-center text-green-600"><i data-lucide="truck" class="mr-1 size-3"></i> Free</span>
+
+                                  <a :href="`/admin/product/${prod.id}/edit`" class="btn btn-ghost p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30" title="Edit Product">
+                                    <i data-lucide="edit" class="size-4"></i>
+                                  </a>
+                                </div>
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("productMgt", (goData) => ({
+        viewState: "createGroup",
+        selectedGroup: null,
+        isSubmitting: false,
+        errorMessage: "",
+        groups: goData.groups,
+
+        groupForm: { name: "", variationTypes: ["Color", "Size"] },
+        productForm: {
+          name: "",
+          description: "",
+          price: "",
+          discountPrice: "",
+          stock: "",
+          gallery: [""],
+          variations: {},
+          isFreeShipping: false,
+        },
+
+        init() {
+          this.$nextTick(() => {
+            if (window.lucide) lucide.createIcons();
+          });
+          this.$watch("viewState", () => this.$nextTick(() => lucide.createIcons()));
+          this.$watch("groups", () => this.$nextTick(() => lucide.createIcons()), { deep: true });
+        },
+
+        resetToCreateGroup() {
+          this.viewState = "createGroup";
+          this.selectedGroup = null;
+          this.errorMessage = "";
+          this.groupForm = { name: "", variationTypes: ["Color", "Size"] };
+        },
+
+        openAddProduct(group) {
+          this.selectedGroup = group;
+          this.viewState = "addProduct";
+          this.errorMessage = "";
+          this.productForm = {
+            name: "",
+            description: "",
+            price: "",
+            discountPrice: "",
+            stock: "",
+            gallery: [""],
+            variations: {},
+            isFreeShipping: false,
+          };
+          group.variationTypes.forEach((t) => (this.productForm.variations[t] = ""));
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        },
+
+        addVariationType() {
+          this.groupForm.variationTypes.push("");
+        },
+        removeVariationType(i) {
+          if (this.groupForm.variationTypes.length > 1) this.groupForm.variationTypes.splice(i, 1);
+        },
+
+        addImageUrl() {
+          this.productForm.gallery.push("");
+        },
+        removeImageUrl(i) {
+          if (this.productForm.gallery.length > 1) this.productForm.gallery.splice(i, 1);
+        },
+
+        async submitForm() {
+          this.isSubmitting = true;
+          this.errorMessage = "";
+
+          try {
+            if (this.viewState === "createGroup") {
+              // 1. Hit Go Backend to Create Group
+              const res = await fetch("/api/admin/product-groups", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  name: this.groupForm.name,
+                  variationTypes: this.groupForm.variationTypes,
+                }),
+              });
+
+              if (!res.ok) throw new Error((await res.text()) || "Failed to create group");
+              const data = await res.json(); // Expecting backend to return { id: 123 }
+
+              // Update UI Locally
+              const newGroup = {
+                id: data.id || Date.now(),
+                name: this.groupForm.name,
+                variationTypes: [...this.groupForm.variationTypes],
+                expanded: false,
+                products: [],
+              };
+              this.groups.unshift(newGroup);
+              this.openAddProduct(newGroup);
+            } else {
+              // 2. Hit Go Backend to Add Product to the selected group
+
+              // Prepare payload
+              const payload = {
+                groupId: this.selectedGroup.id,
+                name: this.productForm.name,
+                description: this.productForm.description,
+                price: parseFloat(this.productForm.price),
+                discountPrice: this.productForm.discountPrice ? parseFloat(this.productForm.discountPrice) : null,
+                stock: parseInt(this.productForm.stock),
+                gallery: this.productForm.gallery.filter((url) => url.trim() !== ""),
+                variations: this.productForm.variations,
+                shipping: { isFree: this.productForm.isFreeShipping },
+              };
+
+              const res = await fetch("/api/admin/products", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+
+              if (!res.ok) throw new Error((await res.text()) || "Failed to create product");
+              const data = await res.json(); // Expecting backend to return { id: 456 }
+
+              // Update UI Locally
+              const newProd = { id: data.id || Date.now(), ...payload };
+              this.selectedGroup.products.push(newProd);
+              this.selectedGroup.expanded = true;
+
+              alert("Product successfully added!");
+              this.resetToCreateGroup(); // Reset form for next entry
+            }
+          } catch (e) {
+            this.errorMessage = e.message;
+          } finally {
+            this.isSubmitting = false;
+          }
+        },
+      }));
+    });
+  </script>
+{{ end }}

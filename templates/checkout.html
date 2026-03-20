@@ -1,0 +1,425 @@
+{{ block "content" . }}
+  <script src="https://js.stripe.com/v3/"></script>
+
+  <section
+    x-data="checkoutPage({
+      addresses: [
+          {{ range .PageData.Addresses }}
+      { id: {{ .Id }}, name: '{{ .Name }}', street: '{{ .Street }}', city: '{{ .City }}', zip: '{{ .Zip }}', default: {{ .Default }} },
+    {{ end }}
+      ],
+      items: [
+          {{ range .PageData.Items }}
+      { id: '{{ .ProductId }}', price: {{ .Price }}, quantity: {{ .Quantity }}, shippingOptions: [
+      {{ range .ShippingOptions }}
+        { id: '{{ .Id }}', price: {{ .Price }}, desc: '{{ .Desc }}' },
+      {{ end }}
+      ] },
+    {{ end }}
+      ]
+  })"
+  >
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <h1 class="mb-8 text-3xl font-bold text-neutral-900 dark:text-white">Checkout</h1>
+
+      <div class="lg:grid lg:grid-cols-12 lg:gap-12">
+        <div class="space-y-8 lg:col-span-7 xl:col-span-8">
+          <div class="card p-6 shadow-sm">
+            <h2 class="mb-4 text-xl font-semibold text-neutral-900 dark:text-white">Delivery Information</h2>
+
+            <template x-if="selectedAddress.id">
+              <div class="rounded-xl border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-700 dark:bg-neutral-800/50">
+                <div class="flex items-start justify-between">
+                  <div class="flex items-center gap-4">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                      <i data-lucide="map-pin" class="size-5"></i>
+                    </div>
+                    <div>
+                      <p class="font-semibold text-neutral-900 dark:text-white" x-text="selectedAddress.name"></p>
+                      <p class="text-sm text-neutral-500 dark:text-neutral-400" x-text="`${selectedAddress.street}, ${selectedAddress.city} ${selectedAddress.zip}`"></p>
+                    </div>
+                  </div>
+                  <button type="button" popovertarget="address-popover" class="btn btn-ghost text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400">Change</button>
+                </div>
+              </div>
+            </template>
+
+            <template x-if="!selectedAddress.id">
+              <div class="rounded-xl border border-dashed border-neutral-300 p-6 text-center dark:border-neutral-700">
+                <i data-lucide="map-pin" class="mx-auto mb-2 size-6 text-neutral-400"></i>
+                <p class="mb-3 text-sm text-neutral-500">No delivery address selected.</p>
+                <button type="button" popovertarget="address-popover" class="btn btn-primary text-sm">Add Address</button>
+              </div>
+            </template>
+          </div>
+
+          <div class="card p-6 shadow-sm">
+            <h2 class="mb-4 text-xl font-semibold text-neutral-900 dark:text-white">Items & Shipping</h2>
+
+            <div class="space-y-6">
+              {{ if eq (len .PageData.Items) 0 }}
+                <p class="py-4 text-center text-sm text-neutral-500">Your cart is empty.</p>
+                <div class="text-center"><a href="/cart" class="btn btn-ghost">Return to Cart</a></div>
+              {{ else }}
+                {{ range .PageData.Items }}
+                  <div class="flex flex-col gap-4 rounded-xl border border-neutral-200 p-4 sm:flex-row dark:border-neutral-700 dark:bg-neutral-800/30">
+                    <div class="h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-white p-2 dark:border-neutral-800 dark:bg-neutral-900">
+                      <img src="{{ .Image }}" alt="{{ .Name }}" class="h-full w-full object-contain mix-blend-multiply dark:mix-blend-normal" />
+                    </div>
+
+                    <div class="flex flex-1 flex-col justify-between">
+                      <div>
+                        <div class="flex justify-between">
+                          <h4 class="font-bold text-neutral-900 dark:text-white">{{ .Name }}</h4>
+                          <p class="font-bold text-neutral-900 dark:text-white">${{ printf "%.2f" .ItemTotal }}</p>
+                        </div>
+                        <p class="text-sm text-neutral-500">Qty: {{ .Quantity }}</p>
+
+                        {{ if .Selections }}
+                          <p class="mt-1 text-xs text-neutral-500">
+                            {{ range $key, $val := .Selections }}<span class="mr-2 rounded bg-neutral-100 px-1.5 py-0.5 dark:bg-neutral-800">{{ $key }}: {{ $val }}</span>{{ end }}
+                          </p>
+                        {{ end }}
+                      </div>
+
+                      <div class="mt-4 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+                        <label class="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">Shipping Method:</label>
+                        <div class="relative">
+                          <select x-model="shippingSelections['{{ .ProductId }}']" class="input select h-10 w-full appearance-none bg-neutral-50 py-1 pr-8 pl-3 text-sm dark:bg-neutral-900">
+                            {{ range .ShippingOptions }}
+                              <option value="{{ .Id }}">{{ .Name }} - {{ if eq .Price 0.0 }}Free{{ else }}${{ printf "%.2f" .Price }}{{ end }}</option>
+                            {{ end }}
+                          </select>
+                          <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
+                            <i data-lucide="chevron-down" class="size-4 text-neutral-500"></i>
+                          </div>
+                        </div>
+                        <p class="mt-1.5 text-xs text-neutral-500" x-text="getShippingDesc('{{ .ProductId }}')">
+                          {{ (index .ShippingOptions 0).Desc }}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                {{ end }}
+              {{ end }}
+            </div>
+          </div>
+
+          <div class="card p-6 shadow-sm">
+            <div class="mb-4 flex items-center justify-between">
+              <h2 class="text-xl font-semibold text-neutral-900 dark:text-white">Payment Details</h2>
+              <div class="flex gap-2">
+                <i data-lucide="credit-card" class="size-6 text-blue-600 dark:text-blue-400"></i>
+              </div>
+            </div>
+
+            <form id="payment-form" @submit.prevent="processPayment" class="space-y-6">
+              <div>
+                <label for="full_name" class="mb-2 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Cardholder Name</label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                    <i data-lucide="user" class="size-5 text-neutral-400"></i>
+                  </div>
+                  <input type="text" id="full_name" x-model="cardholderName" class="input pl-10" placeholder="John Doe" required />
+                </div>
+              </div>
+
+              <div>
+                <label class="mb-2 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Card Details</label>
+                <div id="card-element" class="block w-full rounded-lg border border-neutral-300 bg-white px-4 py-3.5 dark:border-neutral-700 dark:bg-neutral-950"></div>
+                <div id="card-errors" class="mt-2 text-sm font-medium text-red-600" role="alert"></div>
+              </div>
+
+              <button type="submit" :disabled="isProcessing || !selectedAddress.id || items.length === 0" class="btn btn-primary w-full py-3.5 text-base shadow-lg shadow-blue-700/20">
+                <i x-show="!isProcessing" data-lucide="lock" class="mr-2 size-5"></i>
+                <i x-show="isProcessing" data-lucide="loader-circle" class="mr-2 size-5 animate-spin" style="display:none;"></i>
+                <span x-text="items.length === 0 ? 'Cart is empty' : !selectedAddress.id ? 'Select an address to pay' : isProcessing ? 'Processing securely...' :  `Pay ${formatCurrency(total)}`"></span>
+              </button>
+
+              <p class="flex items-center justify-center gap-1.5 text-center text-xs text-neutral-500">
+                <i data-lucide="shield-check" class="size-4 text-green-600"></i>
+                Payments are securely processed and encrypted by Stripe.
+              </p>
+            </form>
+          </div>
+        </div>
+
+        <div class="mt-8 lg:col-span-5 lg:mt-0 xl:col-span-4">
+          <div class="card sticky top-24 p-6 shadow-sm">
+            <h3 class="mb-6 text-lg font-bold text-neutral-900 dark:text-white">Order Summary</h3>
+
+            <div class="space-y-4">
+              <div class="flex justify-between text-sm text-neutral-600 dark:text-neutral-400">
+                <span>Subtotal</span>
+                <span class="font-medium text-neutral-900 dark:text-white" x-text="formatCurrency(subtotal)"></span>
+              </div>
+              <div class="flex justify-between text-sm text-neutral-600 dark:text-neutral-400">
+                <span>Tax (Estimated)</span>
+                <span class="font-medium text-neutral-900 dark:text-white" x-text="formatCurrency(tax)"></span>
+              </div>
+              <div class="flex justify-between text-sm text-neutral-600 dark:text-neutral-400">
+                <span>Shipping</span>
+                <span class="font-medium" :class="shippingTotal === 0 ? 'text-green-600' : 'text-neutral-900 dark:text-white'" x-text="shippingTotal === 0 ? 'Free' : formatCurrency(shippingTotal)"></span>
+              </div>
+
+              <hr class="border-neutral-200 dark:border-neutral-800" />
+
+              <div class="flex justify-between text-lg font-bold text-neutral-900 dark:text-white">
+                <span>Total</span>
+                <span x-text="formatCurrency(total)"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="address-popover" popover class="fixed inset-0 m-auto w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-0 shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <div class="border-b border-neutral-100 p-5 dark:border-neutral-800">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-bold text-neutral-900 dark:text-white">Select Delivery Address</h3>
+          <button popovertarget="address-popover" popovertargetaction="hide" class="btn btn-ghost rounded-full p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800">
+            <i data-lucide="x" class="size-5 text-neutral-500"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-5">
+        <div class="space-y-3" x-show="!isAddingNewAddress">
+          <template x-for="addr in addresses" :key="addr.id">
+            <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800/50" :class="selectedAddress.id === addr.id ? 'border-blue-600 ring-1 ring-blue-600 bg-blue-50/10 dark:border-blue-500' : 'border-neutral-200 dark:border-neutral-700'">
+              <input type="radio" name="address" :value="addr.id" :checked="selectedAddress.id === addr.id" @change="selectAddress(addr)" class="mt-1 size-4 border-neutral-300 text-blue-600 focus:ring-blue-600 dark:border-neutral-600 dark:bg-neutral-700" />
+              <div class="flex-1">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-bold text-neutral-900 dark:text-white" x-text="addr.name"></span>
+                  <span x-show="addr.default" class="rounded-full bg-neutral-200 px-2 py-0.5 text-[10px] font-bold tracking-wide text-neutral-700 uppercase dark:bg-neutral-700 dark:text-neutral-300">Default</span>
+                </div>
+                <p class="mt-1 text-sm text-neutral-500 dark:text-neutral-400" x-text="addr.street"></p>
+                <p class="text-sm text-neutral-500 dark:text-neutral-400" x-text="`${addr.city}, ${addr.zip}`"></p>
+              </div>
+            </label>
+          </template>
+
+          <div class="pt-2">
+            <button @click="isAddingNewAddress = true" class="btn btn-ghost w-full border border-dashed border-neutral-300 text-neutral-600 hover:border-neutral-400 dark:border-neutral-700 dark:text-neutral-400"><i data-lucide="plus" class="mr-2 size-4"></i> Add New Address</button>
+          </div>
+        </div>
+
+        <form @submit.prevent="saveNewAddress" class="space-y-4" x-show="isAddingNewAddress" x-transition style="display:none;">
+          <div>
+            <label for="new-addr-name" class="form-label">Full Name</label>
+            <input id="new-addr-name" type="text" x-model="newAddr.name" class="input" placeholder="John Doe" :required="isAddingNewAddress" />
+          </div>
+          <div>
+            <label for="new-addr-street" class="form-label">Street Address</label>
+            <input id="new-addr-street" type="text" x-model="newAddr.street" class="input" placeholder="123 Main St" :required="isAddingNewAddress" />
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="new-addr-city" class="form-label">City</label>
+              <input id="new-addr-city" type="text" x-model="newAddr.city" class="input" placeholder="New York" :required="isAddingNewAddress" />
+            </div>
+            <div>
+              <label for="new-addr-zip" class="form-label">Zip Code</label>
+              <input id="new-addr-zip" type="text" x-model="newAddr.zip" class="input" placeholder="10001" :required="isAddingNewAddress" />
+            </div>
+          </div>
+          <div class="mt-6 flex items-center justify-end gap-3 border-t border-neutral-100 pt-4 dark:border-neutral-800">
+            <button type="button" @click="isAddingNewAddress = false" class="btn btn-ghost">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Address</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+{{ end }}
+
+{{ block "js" . }}
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("checkoutPage", (goData) => ({
+        addresses: goData.addresses,
+        selectedAddress: {},
+        items: goData.items,
+        shippingSelections: {},
+
+        isAddingNewAddress: false,
+        newAddr: { name: "", street: "", city: "", zip: "" },
+
+        // Stripe State
+        stripe: null,
+        cardElement: null,
+        cardholderName: "",
+        isProcessing: false,
+
+        init() {
+          // 1. Setup Data Defaults
+          this.selectedAddress = this.addresses.find((a) => a.default) || this.addresses[0] || {};
+
+          this.items.forEach((item) => {
+            if (item.shippingOptions && item.shippingOptions.length > 0) {
+              this.shippingSelections[item.id] = item.shippingOptions[0].id;
+            }
+          });
+
+          // 2. Initialize Stripe
+          this.stripe = Stripe("pk_test_51TCoEgCdZ0CvK2ljovmBFxgFIGgIMhj23gW3VvDM5S6AM9ESa0M8zwJmscY9YwS36UEltLKXipQACubI72l8li0M00jK13n5ql");
+
+          const elements = this.stripe.elements();
+
+          const isDark = document.documentElement.classList.contains("dark") || window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+          // Style the element to match your Tailwind classes
+          this.cardElement = elements.create("card", {
+            style: {
+              base: {
+                iconColor: "#3b82f6",
+                color: isDark ? "#ffffff" : "#171717", // <--- White in dark mode, dark gray in light mode
+                fontWeight: "500",
+                fontFamily: "Inter, system-ui, sans-serif",
+                fontSize: "16px",
+                fontSmoothing: "antialiased",
+                "::placeholder": { color: "#a3a3a3" },
+              },
+              invalid: {
+                iconColor: "#dc2626",
+                color: "#dc2626",
+              },
+            },
+          });
+
+          // Mount to the DOM
+          this.cardElement.mount("#card-element");
+
+          // Listen for validation errors in real-time
+          this.cardElement.on("change", function (event) {
+            const displayError = document.getElementById("card-errors");
+            if (event.error) {
+              displayError.textContent = event.error.message;
+            } else {
+              displayError.textContent = "";
+            }
+          });
+
+          // 3. Initialize Icons
+          this.$nextTick(() => {
+            if (window.lucide) lucide.createIcons();
+          });
+        },
+
+        // Client-side Math
+        get subtotal() {
+          return this.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+        },
+        get shippingTotal() {
+          return this.items.reduce((sum, item) => {
+            const selectedOptId = this.shippingSelections[item.id];
+            const opt = item.shippingOptions.find((o) => o.id === selectedOptId);
+            return sum + (opt ? opt.price : 0);
+          }, 0);
+        },
+        get tax() {
+          return this.subtotal * 0.08; // 8% tax
+        },
+        get total() {
+          return this.subtotal + this.tax + this.shippingTotal;
+        },
+
+        getShippingDesc(productId) {
+          const item = this.items.find((i) => i.id === productId);
+          if (!item) return "";
+          const selectedOptId = this.shippingSelections[productId];
+          const opt = item.shippingOptions.find((o) => o.id === selectedOptId);
+          return opt ? opt.desc : "";
+        },
+
+        selectAddress(addr) {
+          this.selectedAddress = addr;
+          document.getElementById("address-popover").hidePopover();
+        },
+
+        saveNewAddress() {
+          const addr = { ...this.newAddr, id: Date.now(), default: false };
+          this.addresses.push(addr);
+          this.selectedAddress = addr;
+          this.isAddingNewAddress = false;
+          document.getElementById("address-popover").hidePopover();
+        },
+
+        async processPayment() {
+          if (!this.selectedAddress.id) {
+            alert("Please select or add a delivery address.");
+            return;
+          }
+
+          this.isProcessing = true;
+          const errorDisplay = document.getElementById("card-errors");
+          errorDisplay.textContent = "";
+
+          try {
+            // 1. Fetch the exact Client Secret from the Go Backend right before charging
+            // We pass the shippingSelections so the backend can calculate the exact same final Total!
+            const res = await fetch("/api/create-payment-intent", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                shippingSelections: this.shippingSelections,
+              }),
+            });
+
+            if (!res.ok) throw new Error("Failed to initialize secure payment. Please try again.");
+
+            const { clientSecret } = await res.json();
+
+            // 2. Execute the actual charge via Stripe
+            const { paymentIntent, error } = await this.stripe.confirmCardPayment(clientSecret, {
+              payment_method: {
+                card: this.cardElement,
+                billing_details: {
+                  name: this.cardholderName,
+                  address: {
+                    line1: this.selectedAddress.street,
+                    city: this.selectedAddress.city,
+                    postal_code: this.selectedAddress.zip,
+                  },
+                },
+              },
+            });
+
+            if (error) {
+              // Display error (e.g. Card Declined, Insufficient Funds)
+              errorDisplay.textContent = error.message;
+            } else if (paymentIntent.status === "succeeded") {
+              // SUCCESS!
+              // 1. Clear the cart
+              const orderRes = await fetch("/api/orders", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  paymentIntentId: paymentIntent.id,
+                  name: this.cardholderName,
+                }),
+              });
+              if (!orderRes.ok) {
+                throw new Error("Payment succeeded, but we failed to log your order. Please contact support.");
+              }
+              document.cookie = "cart=; path=/; max-age=0";
+
+              // 2. In a complete app, you would POST to a `/api/orders` endpoint here to save the order to the database.
+              // For now, redirect to the success view.
+              window.location.href = "/profile/orders?success=true";
+            }
+          } catch (err) {
+            errorDisplay.textContent = err.message;
+          } finally {
+            this.isProcessing = false;
+          }
+        },
+
+        formatCurrency(v) {
+          return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(v);
+        },
+      }));
+    });
+  </script>
+{{ end }}

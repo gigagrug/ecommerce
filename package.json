@@ -1,0 +1,40 @@
+{
+  "name": "marketplace",
+  "type": "module",
+  "scripts": {
+    "tw": "tailwindcss -i ./src/input.css -o ./static/output.css -m",
+    "icons": "node ./src/generate-icons.js",
+    "js": "esbuild ./src/app.js ./src/chart.js --bundle --minify --outdir=static",
+    "build": "npm run icons && npm run tw && npm run js"
+  },
+  "dependencies": {
+    "alpinejs": "^3.15.8",
+    "chart.js": "^4.5.1",
+    "lucide": "^0.577.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.1",
+    "esbuild": "^0.27.3",
+    "prettier": "^3.8.1",
+    "prettier-plugin-go-template": "^0.0.15",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "tailwindcss": "^4.2.1"
+  },
+  "prettier": {
+    "plugins": [
+      "prettier-plugin-go-template",
+      "prettier-plugin-tailwindcss"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "*.html"
+        ],
+        "options": {
+          "parser": "go-template"
+        }
+      }
+    ],
+    "printWidth": 1000
+  }
+}

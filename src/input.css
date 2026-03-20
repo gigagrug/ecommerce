@@ -1,0 +1,169 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-white text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100;
+  }
+  a,
+  button {
+    @apply hover:cursor-pointer;
+  }
+}
+
+@layer components {
+  /* --- Inputs & Forms --- */
+  .form-label {
+    @apply mb-2 block text-sm font-medium text-neutral-900 dark:text-neutral-100;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-neutral-300 bg-transparent px-4 py-2 text-sm placeholder:text-neutral-500 focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/20 focus:outline-hidden dark:border-neutral-700 dark:text-neutral-100 dark:focus:border-neutral-100 dark:focus:ring-white/20;
+  }
+
+  .checkbox {
+    @apply h-4 w-4 cursor-pointer rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900 dark:border-neutral-700 dark:bg-neutral-800 dark:focus:ring-white;
+  }
+
+  .radio {
+    @apply h-4 w-4 cursor-pointer rounded-full border-neutral-300 text-neutral-900 focus:ring-neutral-900 dark:border-neutral-700 dark:bg-neutral-800 dark:focus:ring-white;
+  }
+
+  .select {
+    @apply bg-neutral-100 dark:bg-neutral-900;
+  }
+
+  /* --- Navigation --- */
+  .nav-link {
+    @apply flex items-center gap-2 py-2 text-sm font-medium whitespace-nowrap;
+  }
+  .nav-link-active {
+    @apply text-blue-600 dark:text-blue-500;
+  }
+  .nav-link-inactive {
+    @apply text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white;
+  }
+
+  /* --- Buttons --- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-neutral-400 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none disabled:opacity-50 dark:focus:ring-offset-neutral-900;
+  }
+  .btn-ghost {
+    @apply text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800;
+  }
+  .btn-primary {
+    @apply bg-neutral-900 text-white hover:bg-neutral-800 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200;
+  }
+  .btn-icon-danger {
+    @apply text-neutral-400 hover:text-red-600 dark:hover:text-red-400;
+  }
+
+  /* --- Cards & Containers --- */
+  .card {
+    @apply rounded-xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900;
+  }
+  .card-hover {
+    @apply transition-shadow hover:shadow-md;
+  }
+  .card-header {
+    @apply flex items-center justify-between border-b border-neutral-200 bg-neutral-50 px-6 py-4 dark:border-neutral-800 dark:bg-neutral-900/50;
+  }
+  .card-title {
+    @apply text-lg font-semibold text-neutral-900 dark:text-white;
+  }
+
+  /* --- Typography & Sections --- */
+  .section-header {
+    @apply mb-6 flex items-center justify-between;
+  }
+  .section-title {
+    @apply text-2xl font-bold dark:text-white;
+  }
+  .link-blue {
+    @apply text-sm font-medium text-blue-600 hover:underline dark:text-blue-400;
+  }
+  .link-neutral {
+    @apply text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white;
+  }
+
+  /* --- Badges --- */
+  .badge-red {
+    @apply inline-flex items-center rounded-md bg-red-600 px-2 py-1 text-xs font-bold text-white;
+  }
+  .badge-blue {
+    @apply inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-blue-700/10 ring-inset dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/30;
+  }
+  .badge-red-soft {
+    @apply inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-red-600/10 ring-inset dark:bg-red-500/10 dark:text-red-400 dark:ring-red-500/20;
+  }
+  .badge-green {
+    @apply inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20 ring-inset dark:bg-green-500/10 dark:text-green-400 dark:ring-green-500/20;
+  }
+  .badge-yellow {
+    @apply inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-yellow-600/20 ring-inset dark:bg-yellow-400/10 dark:text-yellow-400 dark:ring-yellow-400/30;
+  }
+  .badge-purple {
+    @apply inline-flex items-center rounded-md bg-purple-50 px-2 py-1 text-xs font-medium text-purple-700 ring-1 ring-purple-700/10 ring-inset dark:bg-purple-400/10 dark:text-purple-400 dark:ring-purple-400/30;
+  }
+  .badge-neutral {
+    @apply inline-flex items-center rounded-md bg-neutral-50 px-2 py-1 text-xs font-medium text-neutral-600 ring-1 ring-neutral-500/10 ring-inset dark:bg-neutral-400/10 dark:text-neutral-400 dark:ring-neutral-400/20;
+  }
+  /* --- Visual Utilities --- */
+  .star-rating {
+    @apply flex items-center gap-0.5 text-yellow-400;
+  }
+
+  .icon-box {
+    @apply flex shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400;
+  }
+  .icon-box-md {
+    @apply h-10 w-10;
+  }
+  .icon-box-sm {
+    @apply h-8 w-8;
+  }
+  .icon-box-blue {
+    @apply bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400;
+  }
+  .icon-box-green {
+    @apply bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400;
+  }
+
+  .step-circle {
+    @apply flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ring-4 ring-white dark:ring-neutral-900;
+  }
+  .step-circle-active {
+    @apply bg-neutral-900 text-white dark:bg-white dark:text-neutral-900;
+  }
+  .step-circle-inactive {
+    @apply bg-neutral-200 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-500;
+  }
+
+  /* --- Tables & Lists --- */
+  .list-group-item {
+    @apply rounded-lg border border-neutral-200 hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700;
+  }
+  .dropdown-item {
+    @apply flex w-full cursor-pointer items-center gap-2 rounded-md px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 dark:text-neutral-200 dark:hover:bg-neutral-800;
+  }
+  .table-head {
+    @apply bg-neutral-50 text-xs text-neutral-700 uppercase dark:bg-neutral-800 dark:text-neutral-300;
+  }
+  .table-row {
+    @apply bg-white hover:bg-neutral-50 dark:bg-neutral-900 dark:hover:bg-neutral-800/50;
+  }
+
+  /* --- Alerts --- */
+  .alert {
+    @apply flex items-center gap-2 rounded-lg border p-4 text-sm font-medium;
+  }
+  .alert-success {
+    @apply border-green-200 bg-green-50 text-green-800 dark:border-green-900/30 dark:bg-green-900/20 dark:text-green-400;
+  }
+  .alert-error {
+    @apply border-red-200 bg-red-50 text-red-800 dark:border-red-900/30 dark:bg-red-900/20 dark:text-red-400;
+  }
+}

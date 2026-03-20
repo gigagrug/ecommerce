@@ -1,0 +1,181 @@
+{{ block "content" . }}
+  <div x-data="searchPage">
+    <form action="/search" method="GET" x-ref="searchForm">
+      {{ if .Query }}
+        <input type="hidden" name="q" value="{{ .Query }}" />
+      {{ end }}
+      <section>
+        <div class="mb-6 flex flex-col gap-4 border-b border-neutral-200 pb-4 sm:flex-row sm:items-center sm:justify-between dark:border-neutral-800">
+          <div>
+            <span class="text-sm text-neutral-600 dark:text-neutral-400">
+              <span class="font-bold">{{ len .PageData.Products }}</span> results for
+              <span class="font-bold text-neutral-900 dark:text-white">"{{ if .Query }}{{ .Query }}{{ else }}All Products{{ end }}"</span>
+            </span>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <button type="button" @click="mobileFiltersOpen = !mobileFiltersOpen" class="btn btn-ghost md:hidden">
+              <i data-lucide="sliders-horizontal" class="size-4"></i>
+              Filters
+            </button>
+
+            <div class="flex items-center gap-2">
+              <label for="sort" class="text-sm font-medium whitespace-nowrap text-neutral-700 dark:text-neutral-300">Sort by:</label>
+              <select id="sort" name="sort" @change="$refs.searchForm.submit()" class="input select py-1.5 pr-8 pl-3 text-sm">
+                <option value="featured">Featured</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="rating">Avg. Customer Review</option>
+                <option value="newest">Newest Arrivals</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col items-start gap-8 md:flex-row">
+          <aside class="w-full shrink-0 md:w-64" :class="mobileFiltersOpen ? 'block' : 'hidden md:block'">
+            <div class="mb-6">
+              <h3 class="mb-3 text-sm font-bold text-neutral-900 dark:text-white">Department</h3>
+              <ul class="space-y-2 text-sm">
+                <li><a href="/search?category=electronics{{ if .Query }}&q={{ .Query }}{{ end }}" class="link-neutral">Electronics</a></li>
+                <li><a href="/search?category=computers{{ if .Query }}&q={{ .Query }}{{ end }}" class="link-neutral">Computers & Accessories</a></li>
+                <li><a href="/search?category=home{{ if .Query }}&q={{ .Query }}{{ end }}" class="link-neutral">Home & Kitchen</a></li>
+                <li><a href="/search?category=fashion{{ if .Query }}&q={{ .Query }}{{ end }}" class="link-neutral">Fashion</a></li>
+              </ul>
+            </div>
+
+            <div class="mb-6">
+              <h3 class="mb-3 text-sm font-bold text-neutral-900 dark:text-white">Price</h3>
+              <div class="flex items-center gap-2">
+                <div class="relative w-full">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-2 text-neutral-500">$</span>
+                  <input type="number" name="minPrice" class="input py-1 pl-6" placeholder="Min" />
+                </div>
+                <span class="text-neutral-500">-</span>
+                <div class="relative w-full">
+                  <span class="absolute inset-y-0 left-0 flex items-center pl-2 text-neutral-500">$</span>
+                  <input type="number" name="maxPrice" class="input py-1 pl-6" placeholder="Max" />
+                </div>
+                <button type="submit" class="btn btn-ghost border border-neutral-300 px-3 py-1 dark:border-neutral-700">Go</button>
+              </div>
+            </div>
+
+            <a href="/search" class="text-sm text-blue-600 hover:underline dark:text-blue-400">Clear all filters</a>
+          </aside>
+
+          <div class="w-full flex-1">
+            <div class="flex flex-col gap-4">
+              {{ if eq (len .PageData.Products) 0 }}
+                <div class="py-12 text-center">
+                  <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+                    <i data-lucide="search-x" class="size-8 text-neutral-500"></i>
+                  </div>
+                  <h3 class="text-lg font-medium">No results found</h3>
+                  <p class="text-neutral-500">Try adjusting your filters or search criteria.</p>
+                </div>
+              {{ else }}
+                {{ range .PageData.Products }}
+                  <div class="card card-hover flex flex-col gap-4 p-4 sm:flex-row">
+                    <div class="relative h-48 w-full shrink-0 overflow-hidden rounded-lg bg-neutral-100 sm:h-48 sm:w-48 dark:bg-neutral-800">
+                      <a href="/s/{{ .ID }}" class="flex h-full w-full items-center justify-center">
+                        <img class="h-full w-full object-contain p-4 transition-transform duration-300 hover:scale-105" src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/imac-front.svg" alt="{{ .Name }}" />
+                      </a>
+                      {{ if .DiscountPrice }}
+                        <span class="badge-red absolute top-2 left-2">SALE</span>
+                      {{ end }}
+                    </div>
+
+                    <div class="flex flex-1 flex-col justify-between">
+                      <div>
+                        <div class="mb-1 flex items-center justify-between">
+                          <h3 class="text-lg font-bold">
+                            <a href="/s/{{ .ID }}" class="hover:text-blue-600 hover:underline dark:hover:text-blue-400">{{ .Name }}</a>
+                          </h3>
+                          <span class="rounded-full bg-neutral-100 px-2 py-0.5 text-[10px] font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">{{ .Category }}</span>
+                        </div>
+
+                        <div class="mt-2 flex items-center gap-2">
+                          <div class="star-rating flex items-center text-yellow-400">
+                            <i data-lucide="star" class="size-4 fill-current"></i>
+                            <i data-lucide="star" class="size-4 fill-current"></i>
+                            <i data-lucide="star" class="size-4 fill-current"></i>
+                            <i data-lucide="star" class="size-4 fill-current"></i>
+                            <i data-lucide="star-half" class="size-4 fill-current"></i>
+                          </div>
+                          <p class="text-sm font-medium text-neutral-500 dark:text-neutral-400">{{ .Rating }} ({{ .Reviews }})</p>
+                        </div>
+
+                        <div class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+                          Or Non-members get <span class="font-semibold">FREE delivery</span>
+                          <span class="font-bold">{{ .NonMemberDelivery }}</span>
+                        </div>
+
+                        <div class="mt-2 flex items-center gap-2">
+                          {{ if .DiscountPrice }}
+                            <div class="flex items-baseline gap-2">
+                              <span class="text-xl font-bold text-red-600 dark:text-red-500">${{ .DiscountPrice }}</span>
+                              <span class="text-sm text-neutral-500 line-through">${{ .Price }}</span>
+                            </div>
+                          {{ else }}
+                            <span class="text-xl font-bold">${{ .Price }}</span>
+                          {{ end }}
+                        </div>
+                      </div>
+
+                      <div class="mt-4 flex items-center">
+                        <button type="button" @click="addToCart({ id: '{{ .ID }}', name: '{{ .Name }}' })" class="btn btn-primary px-4 py-2">
+                          <i data-lucide="shopping-cart" class="size-4"></i>
+                          <span class="hidden sm:inline">Add to cart</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                {{ end }}
+              {{ end }}
+
+            </div>
+
+            {{ if gt (len .PageData.Products) 0 }}
+              <div class="mt-8 mb-12 text-center">
+                <button type="button" class="btn btn-ghost border border-neutral-300 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-900">Next <i data-lucide="chevron-right" class="size-4"></i></button>
+              </div>
+            {{ end }}
+
+          </div>
+        </div>
+      </section>
+    </form>
+  </div>
+{{ end }}
+
+{{ block "js" . }}
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("searchPage", () => ({
+        mobileFiltersOpen: false,
+
+        init() {
+          this.$nextTick(() => {
+            if (window.lucide) lucide.createIcons();
+          });
+        },
+
+        // This replaces the old localStorage logic with the new Cookie Cart logic
+        addToCart(product) {
+          const match = document.cookie.match(new RegExp("(^| )cart=([^;]+)"));
+          let cart = match ? JSON.parse(decodeURIComponent(match[2])) : [];
+
+          let existingItem = cart.find((item) => item.productId === product.id.toString());
+          if (existingItem) {
+            existingItem.quantity++;
+          } else {
+            cart.push({ productId: product.id.toString(), quantity: 1 });
+          }
+
+          document.cookie = `cart=${encodeURIComponent(JSON.stringify(cart))}; path=/; max-age=2592000`;
+          alert(`${product.name} added to cart!`);
+        },
+      }));
+    });
+  </script>
+{{ end }}

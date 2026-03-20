@@ -1,0 +1,173 @@
+{{ define "sellernav" }}
+  <nav class="sticky top-18 z-30 w-full border-b border-neutral-200 bg-white/80 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/80" x-data="sellerNav()" @resize.window="checkScroll">
+    <div class="flex items-center justify-between px-4 py-3 md:hidden">
+      <div class="flex items-center gap-2">
+        <button popovertarget="mobile-menu" class="text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white">
+          <i data-lucide="menu" class="size-5"></i>
+        </button>
+        <span class="text-sm font-medium text-neutral-900 dark:text-white">Seller Menu</span>
+      </div>
+    </div>
+
+    <div class="relative mx-auto hidden max-w-7xl md:block">
+      <button x-show="showLeft" @click="scroll('left')" x-transition.opacity class="absolute top-0 left-0 z-10 flex h-full items-center bg-linear-to-r from-white via-white to-transparent pr-8 pl-4 dark:from-neutral-950 dark:via-neutral-950" style="display: none;">
+        <div class="flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800">
+          <i data-lucide="chevron-left" class="relative right-px size-4"></i>
+        </div>
+      </button>
+
+      <div x-ref="navContainer" @scroll.passive="checkScroll" class="no-scrollbar flex items-center gap-6 overflow-x-auto scroll-smooth px-4 py-3" style="scrollbar-width: none; -ms-overflow-style: none;">
+        <style>
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+        </style>
+
+        <a :href="`/admin/dashboard`" x-show="hasPermission('dashboard')" class="flex items-center gap-2 text-sm font-medium text-nowrap" :class="isActive('/dashboard') ? activeClass : inactiveClass"> <i data-lucide="layout-dashboard" class="size-4"></i> Overview </a>
+        <a :href="`/admin/products`" x-show="hasPermission('products')" style="display: none;" class="flex items-center gap-2 text-sm font-medium text-nowrap" :class="isActive(['/products', '/product/']) ? activeClass : inactiveClass"> <i data-lucide="package" class="size-4"></i> Products </a>
+        <a :href="`/admin/orders`" x-show="hasPermission('orders')" style="display: none;" class="flex items-center gap-2 text-sm font-medium text-nowrap" :class="isActive(['/orders', '/order/']) ? activeClass : inactiveClass"> <i data-lucide="shopping-bag" class="size-4"></i> Orders </a>
+        <a :href="`/admin/support`" x-show="hasPermission('support')" style="display: none;" class="flex items-center gap-2 text-sm font-medium text-nowrap" :class="isActive('/support') ? activeClass : inactiveClass"> <i data-lucide="life-buoy" class="size-4"></i> Support </a>
+        <a :href="`/admin/employees`" x-show="hasPermission('employees')" style="display: none;" class="flex items-center gap-2 text-sm font-medium text-nowrap" :class="isActive(['/employees', '/employee/']) ? activeClass : inactiveClass"> <i data-lucide="users" class="size-4"></i> Employees </a>
+        <div class="w-1 shrink-0"></div>
+      </div>
+
+      <button x-show="showRight" @click="scroll('right')" x-transition.opacity class="absolute top-0 right-0 z-10 flex h-full items-center bg-linear-to-l from-white via-white to-transparent pr-4 pl-8 dark:from-neutral-950 dark:via-neutral-950" style="display: none;">
+        <div class="flex h-7 w-7 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-600 shadow-sm hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:bg-neutral-800">
+          <i data-lucide="chevron-right" class="relative left-px size-4"></i>
+        </div>
+      </button>
+    </div>
+
+    <div id="mobile-menu" popover="auto" class="w-64 flex-col border-y-0 border-r border-l-0 border-neutral-200 bg-white shadow-xl md:hidden dark:border-neutral-800 dark:bg-neutral-950">
+      <div class="flex items-center justify-between border-b border-neutral-200 px-4 py-4 dark:border-neutral-800">
+        <span class="font-bold text-neutral-900 dark:text-white">Seller Menu</span>
+        <button popovertarget="mobile-menu" popovertargetaction="hide" class="rounded-lg p-1 text-neutral-500 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800">
+          <i data-lucide="x" class="size-5"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <a :href="`/admin/dashboard`" x-show="hasPermission('dashboard')" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium" :class="isActive('/dashboard') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-500' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white'"> <i data-lucide="layout-dashboard" class="size-4"></i> Overview </a>
+        <a :href="`/admin/products`" x-show="hasPermission('products')" style="display: none;" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium" :class="isActive(['/products', '/product/']) ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-500' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white'"> <i data-lucide="package" class="size-4"></i> Products </a>
+        <a :href="`/admin/orders`" x-show="hasPermission('orders')" style="display: none;" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium" :class="isActive(['/orders', '/order/']) ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-500' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white'"> <i data-lucide="shopping-bag" class="size-4"></i> Orders </a>
+        <a :href="`/admin/support`" x-show="hasPermission('support')" style="display: none;" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium" :class="isActive('/support') ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-500' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white'"> <i data-lucide="life-buoy" class="size-4"></i> Support </a>
+        <a :href="`/admin/employees`" x-show="hasPermission('employees')" style="display: none;" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium" :class="isActive(['/employees', '/employee/']) ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-500' : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-white'"> <i data-lucide="users" class="size-4"></i> Employees </a>
+      </div>
+    </div>
+  </nav>
+
+  <style>
+    #mobile-menu {
+      margin: 0;
+      height: 100dvh;
+      max-height: none;
+      left: 0;
+      top: 0;
+      display: none;
+      transition:
+        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        display 0.3s allow-discrete,
+        overlay 0.3s allow-discrete;
+      transform: translateX(-100%);
+    }
+    #mobile-menu:popover-open {
+      display: flex;
+      transform: translateX(0);
+    }
+    @starting-style {
+      #mobile-menu:popover-open {
+        transform: translateX(-100%);
+      }
+    }
+    #mobile-menu::backdrop {
+      background-color: rgba(23, 23, 23, 0.5);
+      backdrop-filter: blur(4px);
+      transition:
+        opacity 0.3s ease-in-out,
+        display 0.3s allow-discrete,
+        overlay 0.3s allow-discrete;
+      opacity: 0;
+    }
+    #mobile-menu:popover-open::backdrop {
+      opacity: 1;
+    }
+    @starting-style {
+      #mobile-menu:popover-open::backdrop {
+        opacity: 0;
+      }
+    }
+  </style>
+
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("sellerNav", () => ({
+        path: window.location.pathname,
+        roles: [],
+        showLeft: false,
+        showRight: false,
+        activeClass: "text-blue-600 dark:text-blue-500",
+        inactiveClass: "text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white",
+
+        async init() {
+          try {
+            const res = await fetch(`/api/admin/context`);
+            if (res.ok) {
+              const data = await res.json();
+              this.roles = data.roles || [];
+            }
+          } catch (e) {
+            console.error("Failed to load context", e);
+          }
+
+          this.$nextTick(() => {
+            this.checkScroll();
+            this.scrollToActive();
+          });
+        },
+
+        hasPermission(reqRole) {
+          if (this.roles.includes("Admin")) return true;
+          if (reqRole === "dashboard") return true;
+          return this.roles.includes(reqRole);
+        },
+
+        // FIX: Accept an array of routes so we can match both plural and singular paths!
+        isActive(routeMatch) {
+          if (Array.isArray(routeMatch)) {
+            return routeMatch.some((route) => this.path.includes(`/admin${route}`));
+          }
+          return this.path.includes(`/admin${routeMatch}`);
+        },
+
+        checkScroll() {
+          const el = this.$refs.navContainer;
+          if (!el) return;
+          this.showLeft = el.scrollLeft > 0;
+          this.showRight = Math.ceil(el.scrollLeft + el.clientWidth) < el.scrollWidth - 2;
+        },
+
+        scroll(direction) {
+          const el = this.$refs.navContainer;
+          const scrollAmount = 250;
+          if (direction === "left") {
+            el.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+          } else {
+            el.scrollBy({ left: scrollAmount, behavior: "smooth" });
+          }
+        },
+
+        scrollToActive() {
+          const container = this.$refs.navContainer;
+          const activeEl = container.querySelector(".text-blue-600");
+          if (activeEl) {
+            const scrollPos = activeEl.offsetLeft - container.clientWidth / 2 + activeEl.clientWidth / 2;
+            container.style.scrollBehavior = "auto";
+            container.scrollLeft = scrollPos;
+            container.style.scrollBehavior = "smooth";
+            this.checkScroll();
+          }
+        },
+      }));
+    });
+  </script>
+{{ end }}

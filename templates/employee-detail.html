@@ -1,0 +1,195 @@
+{{ block "content" . }}
+  {{ template "sellernav" }}
+  <div
+    x-data="employeeDetailPage({
+      availableRoles: [
+        {{ range .PageData.Roles }}'{{ . }}',{{ end }}
+      ],
+      employee: {
+          id: {{ .PageData.Employee.ID }},
+          name: '{{ .PageData.Employee.Name }}',
+          email: '{{ .PageData.Employee.Email }}',
+          roles: [{{ range .PageData.Employee.Roles }}'{{ . }}',{{ end }}],
+          status: '{{ .PageData.Employee.Status }}',
+          joinedDate: '{{ .PageData.Employee.JoinedDate }}',
+          lastActive: '{{ .PageData.Employee.LastActive }}'
+      }
+  })"
+  >
+    <div class="mx-auto px-4 pt-8">
+      <a :href="`/admin/employees`" class="mb-6 inline-flex items-center gap-2 text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white">
+        <i data-lucide="arrow-left" class="size-4"></i>
+        Back to Team
+      </a>
+
+      <div class="grid gap-6 lg:grid-cols-3">
+        <div class="space-y-6 lg:col-span-1">
+          <div class="card p-6 text-center">
+            <div class="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-neutral-100 text-3xl font-bold text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300" x-text="getInitials(employee.name)"></div>
+
+            <h1 class="text-xl font-bold" x-text="employee.name"></h1>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400" x-text="employee.email"></p>
+
+            <div class="mt-4 flex flex-wrap justify-center gap-2">
+              <template x-for="role in employee.roles" :key="role">
+                <span class="badge-blue inline-flex items-center rounded-md px-2 py-1 text-xs font-medium capitalize ring-1 ring-inset">
+                  <i data-lucide="shield" class="mr-1 size-3"></i>
+                  <span x-text="role"></span>
+                </span>
+              </template>
+
+              <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset" :class="employee.status.toLowerCase() === 'active' ? 'badge-green' : 'badge-red-soft'">
+                <span class="mr-1.5 h-1.5 w-1.5 rounded-full" :class="employee.status.toLowerCase() === 'active' ? 'bg-green-600' : 'bg-red-600'"></span>
+                <span class="capitalize" x-text="employee.status"></span>
+              </span>
+            </div>
+
+            <div class="mt-6 border-t border-neutral-100 pt-6 text-left dark:border-neutral-800">
+              <div class="mb-3 flex justify-between text-sm">
+                <span class="text-neutral-500 dark:text-neutral-400">Joined</span>
+                <span class="font-medium text-neutral-900 dark:text-white" x-text="employee.joinedDate"></span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-neutral-500 dark:text-neutral-400">Last Active</span>
+                <span class="font-medium text-neutral-900 dark:text-white" x-text="employee.lastActive"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card p-6">
+            <h3 class="mb-2 font-semibold text-red-600 dark:text-red-500">Danger Zone</h3>
+            <p class="mb-4 text-xs text-neutral-500">Revoke access or permanently remove this user.</p>
+            <div class="flex flex-col gap-2">
+              <button @click="toggleStatus" class="btn btn-ghost w-full justify-start text-neutral-600 dark:text-neutral-400 dark:hover:text-white" x-text="employee.status.toLowerCase() === 'active' ? 'Suspend User' : 'Activate User'"></button>
+              <button @click="removeUser" class="btn btn-ghost w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20">Remove User</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-6 lg:col-span-2">
+          <div class="card overflow-hidden">
+            <div class="card-header border-b border-neutral-100 dark:border-neutral-800">
+              <h2 class="font-semibold">Account Settings</h2>
+            </div>
+            <div class="p-6">
+              <form @submit.prevent="updateSettings">
+                <div class="grid gap-6 md:grid-cols-2">
+                  <div class="md:col-span-2">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" x-model="employee.name" class="input bg-neutral-50 text-neutral-500 dark:bg-neutral-800/50" readonly />
+                  </div>
+                  <div class="md:col-span-2">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" x-model="employee.email" class="input bg-neutral-50 text-neutral-500 dark:bg-neutral-800/50" readonly />
+                  </div>
+
+                  <div class="md:col-span-2">
+                    <label class="form-label mb-2 block text-sm font-medium">Assign Roles</label>
+                    <div class="flex flex-wrap gap-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+                      <template x-for="role in availableRoles" :key="role">
+                        <label class="flex cursor-pointer items-center gap-2 hover:opacity-80">
+                          <input type="checkbox" :value="role" x-model="employee.roles" class="checkbox" />
+                          <span class="text-sm font-medium text-neutral-700 capitalize dark:text-neutral-300" x-text="role"></span>
+                        </label>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+                <div class="mt-6 flex justify-end">
+                  <button type="submit" class="btn btn-primary" :disabled="employee.roles.length === 0">Save Changes</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="card p-6">
+            <div class="mb-4">
+              <h3 class="font-semibold">Assigned Access</h3>
+              <p class="text-sm text-neutral-500 dark:text-neutral-400">These are the modules this employee currently has access to.</p>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <template x-if="employee.roles.includes('Admin')">
+                <span class="inline-flex items-center rounded-md bg-green-100 px-3 py-1.5 text-sm font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                  <i data-lucide="shield-check" class="mr-1.5 size-4"></i>
+                  Full System Access (Admin)
+                </span>
+              </template>
+
+              <template x-if="!employee.roles.includes('Admin')">
+                <template x-for="role in employee.roles" :key="role">
+                  <span class="inline-flex items-center rounded-md border border-neutral-200 bg-white px-2.5 py-1 text-sm font-medium text-neutral-600 capitalize dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400" x-text="role"></span>
+                </template>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("employeeDetailPage", (goData) => ({
+        availableRoles: goData.availableRoles,
+        employee: goData.employee,
+
+        init() {
+          this.$nextTick(() => {
+            if (window.lucide) lucide.createIcons();
+          });
+        },
+
+        getInitials(name) {
+          if (!name) return "??";
+          return name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .toUpperCase()
+            .substring(0, 2);
+        },
+
+        async updateSettings() {
+          if (this.employee.roles.length === 0) {
+            alert("An employee must have at least one role.");
+            return;
+          }
+
+          try {
+            const res = await fetch(`/api/admin/employee/${this.employee.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                roles: this.employee.roles,
+                status: this.employee.status,
+              }),
+            });
+
+            if (!res.ok) throw new Error("Failed to update employee");
+            alert("Employee updated successfully!");
+          } catch (e) {
+            alert(e.message);
+          }
+        },
+
+        async toggleStatus() {
+          this.employee.status = this.employee.status.toLowerCase() === "active" ? "Suspended" : "Active";
+          await this.updateSettings();
+        },
+
+        async removeUser() {
+          if (!confirm("Permanently remove this user?")) return;
+          try {
+            const res = await fetch(`/api/admin/employee/${this.employee.id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Failed to remove user");
+
+            window.location.href = `/admin/employees`;
+          } catch (e) {
+            alert(e.message);
+          }
+        },
+      }));
+    });
+  </script>
+{{ end }}

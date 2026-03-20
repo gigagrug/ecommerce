@@ -1,0 +1,213 @@
+{{ block "content" . }}
+  <div class="flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+    <div class="w-full max-w-md">
+      <form id="registerForm" class="card space-y-6 p-8 shadow-xl dark:shadow-none" onsubmit="handleRegister(event)">
+        <div class="text-center">
+          <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
+            <i data-lucide="user-plus" class="h-6 w-6 text-blue-600 dark:text-blue-400"></i>
+          </div>
+          <h1 class="text-2xl font-bold tracking-tight">Create an account</h1>
+          <p class="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Enter your email and a secure password.</p>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="form-label" for="reg_email">Email address</label>
+            <div class="relative">
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <i data-lucide="mail" class="h-5 w-5 text-neutral-400"></i>
+              </div>
+              <input class="input pl-10" id="reg_email" type="email" placeholder="name@company.com" required autocomplete="email" />
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label" for="reg_password">Password</label>
+            <div class="relative">
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <i data-lucide="lock" class="h-5 w-5 text-neutral-400"></i>
+              </div>
+              <input class="input px-10" id="reg_password" type="password" placeholder="••••••••" required autocomplete="new-password" minlength="8" />
+              <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-neutral-400 hover:text-neutral-600">
+                <i id="toggleIcon" data-lucide="eye" class="h-5 w-5"></i>
+              </button>
+            </div>
+            <p class="mt-1 text-xs text-neutral-500">Must be at least 8 characters.</p>
+          </div>
+        </div>
+
+        <button type="submit" id="regBtn" class="btn btn-primary w-full py-2.5">
+          <span>Register</span>
+          <i data-lucide="loader-circle" class="spinner ml-2 hidden h-4 w-4 animate-spin"></i>
+        </button>
+
+        <p class="text-center text-sm text-neutral-500">
+          Already have an account?
+          <a href="/login" class="font-medium text-blue-600 hover:underline dark:text-blue-400">Login here</a>
+        </p>
+      </form>
+
+      <form id="tokenForm" class="card hidden space-y-6 p-8 shadow-xl dark:shadow-none" onsubmit="handleVerify(event)">
+        <div class="text-center">
+          <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+            <i data-lucide="mail-check" class="h-6 w-6 text-green-600 dark:text-green-400"></i>
+          </div>
+          <h1 class="text-2xl font-bold tracking-tight">Check your inbox</h1>
+          <p class="mt-2 text-sm text-neutral-500 dark:text-neutral-400">We sent a 6-digit code to verify your email.</p>
+        </div>
+
+        <div>
+          <label for="reg_token" class="mb-2 block text-sm font-medium">Verification Code</label>
+          <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <i data-lucide="shield-check" class="h-5 w-5 text-neutral-400"></i>
+            </div>
+            <input class="input pl-10 tracking-widest" id="reg_token" type="text" placeholder="123456" autocomplete="off" maxlength="6" />
+          </div>
+        </div>
+
+        <button type="submit" id="tokenBtn" class="btn btn-primary w-full py-2.5">
+          <span>Verify Email</span>
+          <i data-lucide="loader-circle" class="spinner ml-2 hidden h-4 w-4 animate-spin"></i>
+        </button>
+
+        <div class="text-center text-sm">
+          <p class="text-neutral-500">Didn't receive the code?</p>
+          <button type="button" onclick="resendCode()" class="mt-1 font-medium text-blue-600 hover:underline dark:text-blue-400">Click to resend</button>
+        </div>
+      </form>
+
+      <div id="statusBox" class="mt-6 hidden rounded-lg p-4 text-sm" role="alert">
+        <div class="flex items-center gap-2">
+          <i id="statusIcon" data-lucide="info" class="h-5 w-5 shrink-0"></i>
+          <span id="status" class="font-medium"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+{{ end }}
+
+{{ block "js" . }}
+  <script>
+    const statusEl = document.getElementById("status");
+    const statusBox = document.getElementById("statusBox");
+    const statusIcon = document.getElementById("statusIcon");
+    const registerForm = document.getElementById("registerForm");
+    const tokenForm = document.getElementById("tokenForm");
+    const regBtn = document.getElementById("regBtn");
+    const tokenBtn = document.getElementById("tokenBtn");
+
+    let emailState = "";
+
+    function togglePassword() {
+      const pwd = document.getElementById("reg_password");
+      const icon = document.getElementById("toggleIcon");
+      if (pwd.type === "password") {
+        pwd.type = "text";
+        icon.setAttribute("data-lucide", "eye-off");
+      } else {
+        pwd.type = "password";
+        icon.setAttribute("data-lucide", "eye");
+      }
+      lucide.createIcons();
+    }
+
+    function setLoading(btn, isLoading) {
+      const span = btn.querySelector("span");
+      const spinner = btn.querySelector(".spinner");
+      btn.disabled = isLoading;
+      if (isLoading) {
+        spinner.classList.remove("hidden");
+        span.classList.add("opacity-50");
+      } else {
+        spinner.classList.add("hidden");
+        span.classList.remove("opacity-50");
+      }
+    }
+
+    function showAlert(message, type = "error") {
+      statusBox.classList.remove("hidden");
+      statusEl.innerText = message;
+      statusBox.className = "mt-6 rounded-lg p-4 text-sm border";
+      if (type === "error") {
+        statusBox.classList.add("bg-red-50", "text-red-800", "border-red-200", "dark:bg-red-900/20", "dark:text-red-400", "dark:border-red-800");
+        statusIcon.setAttribute("data-lucide", "alert-circle");
+      } else {
+        statusBox.classList.add("bg-green-50", "text-green-800", "border-green-200", "dark:bg-green-900/20", "dark:text-green-400", "dark:border-green-800");
+        statusIcon.setAttribute("data-lucide", "check-circle");
+      }
+      lucide.createIcons();
+    }
+
+    async function handleRegister(event) {
+      event.preventDefault();
+      const email = document.getElementById("reg_email").value;
+      const password = document.getElementById("reg_password").value;
+
+      statusBox.classList.add("hidden");
+      setLoading(regBtn, true);
+
+      try {
+        const resp = await fetch("/api/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (resp.ok) {
+          emailState = email;
+          showAlert("Registration successful! Switching to verification...", "success");
+          setTimeout(() => {
+            registerForm.classList.add("hidden");
+            tokenForm.classList.remove("hidden");
+            statusBox.classList.add("hidden");
+          }, 1200);
+        } else {
+          const errText = await resp.text();
+          showAlert(errText || "Registration failed.", "error");
+        }
+      } catch (e) {
+        showAlert("Network error.", "error");
+      } finally {
+        setLoading(regBtn, false);
+      }
+    }
+
+    async function handleVerify(event) {
+      event.preventDefault();
+      const token = document.getElementById("reg_token").value;
+      if (!token) return showAlert("Please enter the code.", "error");
+
+      setLoading(tokenBtn, true);
+      try {
+        const resp = await fetch("/api/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+
+        if (resp.ok) {
+          showAlert("Email verified! Redirecting to login...", "success");
+          setTimeout(() => (window.location.href = "/login"), 1500);
+        } else {
+          showAlert("Invalid code. Please try again.", "error");
+          setLoading(tokenBtn, false);
+        }
+      } catch (e) {
+        showAlert("Network error.", "error");
+        setLoading(tokenBtn, false);
+      }
+    }
+
+    async function resendCode() {
+      if (!emailState) return showAlert("Session expired.", "error");
+      const resp = await fetch("/api/resend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailState }),
+      });
+      if (resp.ok) showAlert("Code resent!", "success");
+      else showAlert("Failed to resend.", "error");
+    }
+  </script>
+{{ end }}

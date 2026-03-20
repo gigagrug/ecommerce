@@ -1,0 +1,241 @@
+{{ block "content" . }}
+  <div x-data="ecommerce" class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <section class="relative mb-12 overflow-hidden rounded-3xl bg-neutral-900 text-white dark:bg-neutral-950">
+      <div class="absolute inset-0 bg-linear-to-r from-blue-600/20 to-purple-600/20 mix-blend-multiply"></div>
+      <div class="relative mx-auto grid items-center px-6 py-16 md:grid-cols-2 md:gap-12 md:px-12 md:py-24 lg:px-16">
+        <div class="z-10 text-center md:text-left">
+          <span class="mb-4 inline-block rounded-full bg-blue-500/20 px-3 py-1 text-sm font-semibold text-blue-300 backdrop-blur-md"> Spring Collection 2026 </span>
+          <h1 class="mb-6 text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
+            Upgrade Your Life.<br />
+            <span class="bg-linear-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Up to 50% OFF</span>
+          </h1>
+          <p class="mb-8 max-w-lg text-lg text-neutral-300 sm:mx-auto md:mx-0">Discover our curated collection of premium electronics, fashion, and home essentials. Limited stock available.</p>
+          <div class="flex flex-col items-center gap-4 sm:flex-row md:justify-start">
+            <a href="/search" class="btn bg-white px-8 py-3.5 text-base font-semibold whitespace-nowrap text-neutral-900 hover:bg-neutral-100"> Shop Sale Now </a>
+            <a href="/search?sortby=new" class="btn btn-ghost px-8 py-3.5 text-base font-semibold whitespace-nowrap text-white hover:bg-white/10"> View New Arrivals </a>
+          </div>
+        </div>
+        <div class="hidden md:block">
+          <img src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/girl-shopping-list.svg" alt="shopping illustration" class="w-full drop-shadow-2xl" />
+        </div>
+      </div>
+    </section>
+
+    <section class="mb-16 grid grid-cols-2 gap-4 rounded-2xl border border-neutral-200 bg-neutral-50 p-6 md:grid-cols-4 dark:border-neutral-800 dark:bg-neutral-900/30">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center justify-center rounded-full bg-blue-100 p-3 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+          <i data-lucide="truck" class="size-6"></i>
+        </div>
+        <div>
+          <h3 class="font-semibold text-neutral-900 dark:text-white">Free Shipping</h3>
+          <p class="text-sm text-neutral-500">On orders over $50</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center justify-center rounded-full bg-green-100 p-3 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+          <i data-lucide="shield-check" class="size-6"></i>
+        </div>
+        <div>
+          <h3 class="font-semibold text-neutral-900 dark:text-white">Secure Payment</h3>
+          <p class="text-sm text-neutral-500">100% safe checkout</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center justify-center rounded-full bg-purple-100 p-3 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+          <i data-lucide="refresh-cw" class="size-6"></i>
+        </div>
+        <div>
+          <h3 class="font-semibold text-neutral-900 dark:text-white">Easy Returns</h3>
+          <p class="text-sm text-neutral-500">30-day return policy</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center justify-center rounded-full bg-orange-100 p-3 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+          <i data-lucide="headphones" class="size-6"></i>
+        </div>
+        <div>
+          <h3 class="font-semibold text-neutral-900 dark:text-white">24/7 Support</h3>
+          <p class="text-sm text-neutral-500">Always here to help</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="mb-16">
+      <div class="mb-8 flex items-end justify-between">
+        <h2 class="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Browse Categories</h2>
+      </div>
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
+        {{ range .PageData.Categories }}
+          <a href="/search?category={{ .Slug }}" class="group relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-white p-6 text-center hover:border-blue-600 hover:shadow-lg dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-blue-500">
+            <div class="mb-4 text-neutral-400 group-hover:text-blue-600 dark:text-neutral-500 dark:group-hover:text-blue-400">
+              <i data-lucide="{{ .Icon }}" class="size-8"></i>
+            </div>
+            <span class="font-semibold text-neutral-900 dark:text-white">{{ .Name }}</span>
+          </a>
+        {{ else }}
+          <p class="col-span-full text-center text-neutral-500">No categories found.</p>
+        {{ end }}
+      </div>
+    </section>
+
+    <section class="mb-24">
+      <div class="mb-8 flex items-end justify-between">
+        <div>
+          <h2 class="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">Trending Collections</h2>
+          <p class="mt-1 text-neutral-500">Shop our most popular product groups and variations.</p>
+        </div>
+        <a href="/search" class="hidden text-sm font-medium text-blue-600 hover:underline sm:block dark:text-blue-400">View all products &rarr;</a>
+      </div>
+
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {{ if eq (len .PageData.Groups) 0 }}
+          <div class="col-span-full py-12 text-center text-neutral-500">
+            <i data-lucide="package-search" class="mx-auto mb-3 size-10 opacity-20"></i>
+            <p class="text-lg">No collections available at the moment.</p>
+          </div>
+        {{ end }}
+
+        {{ range .PageData.Groups }}
+          <div class="group flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900">
+            <a href="/{{ (index .Combos 0).ID }}" class="relative block aspect-4/3 overflow-hidden bg-neutral-100 p-6 dark:bg-neutral-800/50">
+              <img src="{{ if .MainImage }}{{ .MainImage }}{{ else }}https://placehold.co/500x500?text=No+Image{{ end }}" alt="{{ .Name }}" class="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+            </a>
+
+            <div class="flex flex-1 flex-col p-5">
+              <div class="flex items-start justify-between gap-4">
+                <h3 class="mb-1 text-lg leading-tight font-semibold text-neutral-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
+                  <a href="/{{ (index .Combos 0).ID }}">{{ .Name }}</a>
+                </h3>
+              </div>
+              <p class="mt-1 text-sm font-medium text-green-600 dark:text-green-500">From ${{ printf "%.2f" .MinPrice }}</p>
+
+              <div class="mt-auto pt-5">
+                <p class="mb-2 text-[10px] font-bold tracking-wider text-neutral-400 uppercase">Available Options:</p>
+                <div class="flex flex-wrap gap-1.5">
+                  {{ range .Combos }}
+                    <a href="/{{ .ID }}" class="inline-flex items-center rounded border border-neutral-200 bg-neutral-50 px-2 py-1 text-[11px] font-medium text-neutral-600 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:border-blue-500 dark:hover:bg-blue-900/30 dark:hover:text-blue-400">
+                      {{ .ComboString }}
+                    </a>
+                  {{ end }}
+                </div>
+              </div>
+            </div>
+          </div>
+        {{ end }}
+      </div>
+    </section>
+
+    <section class="mb-12 overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <div class="grid md:grid-cols-2">
+        <div class="bg-neutral-50 p-8 md:p-12 dark:bg-neutral-800/30">
+          <div class="mb-6 inline-flex rounded-xl bg-blue-100 p-3 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+            <i data-lucide="message-square-text" class="size-8"></i>
+          </div>
+          <h2 class="mb-4 text-3xl font-bold tracking-tight text-neutral-900 dark:text-white">Need help with an order?</h2>
+          <p class="mb-8 text-lg text-neutral-600 dark:text-neutral-400">Our customer support team is available 24/7 to assist you with tracking, returns, or general inquiries.</p>
+
+          <div class="space-y-4">
+            <div class="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
+              <i data-lucide="phone" class="size-5 text-neutral-400"></i>
+              <span class="font-medium">1-800-ECOMMERCE</span>
+            </div>
+            <div class="flex items-center gap-3 text-neutral-700 dark:text-neutral-300">
+              <i data-lucide="mail" class="size-5 text-neutral-400"></i>
+              <span class="font-medium">support@store.com</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-8 md:p-12">
+          <form @submit.prevent="submitSupportForm" class="space-y-5">
+            <div class="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label for="sup_name" class="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Your Name</label>
+                <input type="text" id="sup_name" x-model="support.name" class="input bg-neutral-50 dark:bg-neutral-950" required placeholder="John Doe" />
+              </div>
+              <div>
+                <label for="sup_email" class="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Email Address</label>
+                <input type="email" id="sup_email" x-model="support.email" class="input bg-neutral-50 dark:bg-neutral-950" required placeholder="john@example.com" />
+              </div>
+            </div>
+            <div>
+              <label for="sup_subject" class="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Subject</label>
+              <select id="sup_subject" x-model="support.subject" class="input select bg-neutral-50 dark:bg-neutral-950" required>
+                <option value="" disabled selected>Select a topic</option>
+                <option value="order">Where is my order?</option>
+                <option value="return">Request a return/refund</option>
+                <option value="product">Product question</option>
+                <option value="other">Other inquiry</option>
+              </select>
+            </div>
+            <div>
+              <label for="sup_message" class="mb-1 block text-sm font-medium text-neutral-700 dark:text-neutral-300">Message</label>
+              <textarea id="sup_message" x-model="support.message" rows="4" class="input bg-neutral-50 py-3 dark:bg-neutral-950" required placeholder="How can we help you today?"></textarea>
+            </div>
+
+            <div x-show="supportMsg" class="rounded-lg bg-green-50 p-4 text-sm font-medium text-green-800 dark:bg-green-900/20 dark:text-green-400" style="display: none;"><i data-lucide="check-circle" class="mr-2 inline size-4"></i> Message sent successfully! We'll reply within 24 hours.</div>
+
+            <button type="submit" id="supportBtn" class="btn btn-primary w-full py-3">
+              <span>Send Message</span>
+              <i data-lucide="loader-circle" class="spinner ml-2 hidden h-4 w-4 animate-spin"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </div>
+{{ end }}
+
+{{ block "js" . }}
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("ecommerce", () => ({
+        // Support Form State
+        support: {
+          name: "",
+          email: "",
+          subject: "",
+          message: "",
+        },
+        supportMsg: false,
+
+        init() {
+          this.$nextTick(() => {
+            if (window.lucide) lucide.createIcons();
+          });
+        },
+
+        async submitSupportForm() {
+          const btn = document.getElementById("supportBtn");
+          btn.disabled = true;
+          btn.querySelector(".spinner").classList.remove("hidden");
+          this.supportMsg = false;
+
+          try {
+            const res = await fetch("/api/support", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(this.support),
+            });
+
+            if (!res.ok) throw new Error("Failed to send message");
+
+            // Reset form and show success message
+            this.support = { name: "", email: "", subject: "", message: "" };
+            this.supportMsg = true;
+
+            // Hide success message after 5 seconds
+            setTimeout(() => {
+              this.supportMsg = false;
+            }, 5000);
+          } catch (error) {
+            alert("Something went wrong. Please try again later.");
+          } finally {
+            btn.disabled = false;
+            btn.querySelector(".spinner").classList.add("hidden");
+          }
+        },
+      }));
+    });
+  </script>
+{{ end }}

@@ -1,0 +1,188 @@
+{{ block "content" . }}
+  {{ template "sellernav" . }}
+  <div
+    x-data="productEditPage({
+      id: {{ .PageData.ID }},
+      groupName: '{{ .PageData.GroupName }}',
+      variationTypes: [{{ range .PageData.VariationTypes }}'{{ . }}',{{ end }}],
+      productForm: {
+        name: '{{ .PageData.Name }}',
+        description: `{{ .PageData.Description }}`,
+        price: {{ .PageData.Price }},
+        discountPrice: {{ if .PageData.DiscountPrice }}
+      {{ .PageData.DiscountPrice }}
+    {{ else }}
+      null
+    {{ end }},
+        stock: {{ .PageData.Stock }},
+        gallery: [{{ range .PageData.Gallery }}'{{ . }}',{{ end }}],
+        variations: { {{ range $k, $v := .PageData.Variations }}'{{ $k }}': '{{ $v }}',{{ end }} },
+        isFreeShipping: {{ .PageData.IsFreeShipping }}
+      }
+    })"
+  >
+    <div class="mx-auto max-w-4xl px-4 pt-8 pb-16">
+      <div class="mb-6 flex items-center gap-3">
+        <a href="/admin/products" class="btn btn-ghost px-2 text-neutral-500 hover:text-neutral-900 dark:hover:text-white">
+          <i data-lucide="arrow-left" class="size-5"></i>
+        </a>
+        <div>
+          <h1 class="text-2xl font-bold">Edit Product</h1>
+          <p class="text-sm text-neutral-500">Editing item inside group: <span class="font-medium text-neutral-700 dark:text-neutral-300" x-text="groupName"></span></p>
+        </div>
+      </div>
+
+      <div class="card overflow-hidden border-t-4 border-t-blue-600 shadow-sm">
+        <div class="p-6">
+          <form @submit.prevent="submitForm" class="space-y-8">
+            <div class="rounded-lg border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900/30 dark:bg-blue-900/10">
+              <h3 class="mb-4 text-sm font-bold text-blue-900 dark:text-blue-100">Variation Values</h3>
+              <div class="grid gap-4 md:grid-cols-3">
+                <template x-for="vType in variationTypes" :key="vType">
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-neutral-500 uppercase" x-text="vType"></label>
+                    <input type="text" x-model="productForm.variations[vType]" required class="input bg-white dark:bg-black" :placeholder="`Enter ${vType}...`" />
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div class="grid gap-6 md:grid-cols-2">
+              <div class="md:col-span-2">
+                <label class="form-label">Product Name</label>
+                <input type="text" x-model="productForm.name" required class="input" />
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="form-label">Description</label>
+                <textarea rows="4" class="input resize-none py-2" x-model="productForm.description" required></textarea>
+              </div>
+
+              <div>
+                <label class="form-label">Base Price</label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><i data-lucide="dollar-sign" class="size-4 text-neutral-500"></i></div>
+                  <input type="number" step="0.01" x-model="productForm.price" required class="input pl-9" />
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label">Discount Price (Optional)</label>
+                <div class="relative">
+                  <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><i data-lucide="tag" class="size-4 text-neutral-500"></i></div>
+                  <input type="number" step="0.01" x-model="productForm.discountPrice" class="input pl-9" />
+                </div>
+              </div>
+
+              <div>
+                <label class="form-label">Stock Quantity</label>
+                <input type="number" x-model="productForm.stock" required class="input" />
+              </div>
+
+              <div class="flex items-center pt-8">
+                <label class="flex cursor-pointer items-center gap-3">
+                  <input type="checkbox" x-model="productForm.isFreeShipping" class="checkbox size-5 rounded border-neutral-300" />
+                  <span class="text-sm font-medium text-neutral-700 dark:text-neutral-300">Offer Free Shipping on this variation</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <div class="mb-2 flex items-center justify-between">
+                <label class="form-label">Image Gallery URLs</label>
+                <button type="button" @click="addImageUrl" class="text-xs font-medium text-blue-600 hover:underline">+ Add Image</button>
+              </div>
+              <div class="space-y-2">
+                <template x-for="(img, index) in productForm.gallery" :key="index">
+                  <div class="flex gap-2">
+                    <div class="relative flex-1">
+                      <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3"><i data-lucide="image" class="size-4 text-neutral-500"></i></div>
+                      <input type="url" x-model="productForm.gallery[index]" required class="input pl-9" placeholder="https://example.com/image.jpg" />
+                    </div>
+                    <button type="button" @click="removeImageUrl(index)" class="btn btn-ghost px-2 text-red-500" :disabled="productForm.gallery.length === 1">
+                      <i data-lucide="trash-2" class="size-4"></i>
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div class="mt-8 flex items-center justify-between border-t border-neutral-200 pt-6 dark:border-neutral-800">
+              <span class="text-sm font-medium text-red-500" x-show="errorMessage" x-text="errorMessage"></span>
+              <button type="submit" :disabled="isSubmitting" class="btn btn-primary ml-auto w-full md:w-auto">
+                <i x-show="!isSubmitting" data-lucide="save" class="mr-2 size-4"></i>
+                <i x-show="isSubmitting" data-lucide="loader-circle" class="mr-2 size-4 animate-spin" style="display: none;"></i>
+                <span x-text="isSubmitting ? 'Saving...' : 'Save Changes'"></span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("productEditPage", (data) => ({
+        id: data.id,
+        groupName: data.groupName,
+        variationTypes: data.variationTypes,
+        productForm: data.productForm,
+
+        isSubmitting: false,
+        errorMessage: "",
+
+        init() {
+          // Ensure at least one empty image URL field exists if the array is completely empty
+          if (this.productForm.gallery.length === 0) {
+            this.productForm.gallery.push("");
+          }
+
+          this.$nextTick(() => {
+            if (window.lucide) lucide.createIcons();
+          });
+        },
+
+        addImageUrl() {
+          this.productForm.gallery.push("");
+        },
+        removeImageUrl(i) {
+          if (this.productForm.gallery.length > 1) this.productForm.gallery.splice(i, 1);
+        },
+
+        async submitForm() {
+          this.isSubmitting = true;
+          this.errorMessage = "";
+
+          const payload = {
+            name: this.productForm.name,
+            description: this.productForm.description,
+            price: parseFloat(this.productForm.price),
+            discountPrice: this.productForm.discountPrice ? parseFloat(this.productForm.discountPrice) : null,
+            stock: parseInt(this.productForm.stock),
+            gallery: this.productForm.gallery.filter((url) => url.trim() !== ""),
+            variations: this.productForm.variations,
+            shipping: { isFree: this.productForm.isFreeShipping },
+          };
+
+          try {
+            const res = await fetch(`/api/admin/products/${this.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) throw new Error((await res.text()) || "Failed to update product");
+
+            // Redirect back to inventory listing
+            window.location.href = "/admin/products";
+          } catch (e) {
+            this.errorMessage = e.message;
+          } finally {
+            this.isSubmitting = false;
+          }
+        },
+      }));
+    });
+  </script>
+{{ end }}

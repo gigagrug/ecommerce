@@ -1,0 +1,33 @@
+{{ define "profilenav" }}
+  <nav
+    class="sticky top-18 z-30 w-full border-b border-neutral-200 bg-white/80 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/80"
+    x-data="{ 
+        path: window.location.pathname,
+        isActive(route) {
+            if (route === '/profile') {
+                return this.path === '/profile';
+            }
+            return this.path.startsWith(route);
+        },
+        activeClass: 'text-blue-600 dark:text-blue-500',
+        inactiveClass: 'text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white'
+    }"
+  >
+    <div class="mx-auto flex items-center gap-6 overflow-x-auto px-4 py-3">
+      <a href="/profile" class="flex items-center gap-2 text-sm font-medium" :class="isActive('/profile') ? activeClass : inactiveClass">
+        <i data-lucide="home" class="size-4"></i>
+        Home
+      </a>
+
+      <a href="/profile/orders" class="flex items-center gap-2 text-sm font-medium" :class="isActive('/profile/order') ? activeClass : inactiveClass">
+        <i data-lucide="package" class="size-4"></i>
+        Orders
+      </a>
+
+      <a href="/profile/support" class="flex items-center gap-2 text-sm font-medium" :class="isActive('/profile/support') ? activeClass : inactiveClass">
+        <i data-lucide="life-buoy" class="size-4"></i>
+        Support
+      </a>
+    </div>
+  </nav>
+{{ end }}

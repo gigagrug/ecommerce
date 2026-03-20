@@ -1,0 +1,158 @@
+{{ block "content" . }}
+  {{ template "profilenav" . }}
+  <div x-data="orderDetailPage" class="mx-auto max-w-7xl px-4 py-8 md:py-12">
+    <div class="mb-6">
+      <a href="/profile/orders" class="group inline-flex items-center gap-1 text-sm font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white">
+        <i data-lucide="arrow-left" class="h-4 w-4 transition-transform group-hover:-translate-x-1"></i>
+        Back to Orders
+      </a>
+    </div>
+
+    <div>
+      <div class="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <div class="flex items-center gap-3">
+            <h1 class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-white">Order {{ .PageData.ID }}</h1>
+
+            <span class="{{ if eq .PageData.Status "Delivered" }}badge-green{{ else if eq .PageData.Status "Shipped" }}badge-blue{{ else if eq .PageData.Status "Processing" }}badge-yellow{{ else }}badge-neutral{{ end }} inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium">
+              {{ .PageData.Status }}
+            </span>
+          </div>
+          <p class="mt-2 text-sm text-neutral-500 dark:text-neutral-400">Placed on <span class="font-medium text-neutral-900 dark:text-neutral-200">{{ .PageData.PlacedAt }}</span></p>
+        </div>
+        <div class="flex gap-3">
+          <button class="btn btn-ghost border border-neutral-200 dark:border-neutral-800">Invoice</button>
+          <button class="btn btn-primary">Track Package</button>
+        </div>
+      </div>
+
+      <div class="grid gap-8 lg:grid-cols-3">
+        <div class="space-y-8 lg:col-span-2">
+          <section class="card overflow-hidden">
+            <div class="card-header">
+              <h2 class="card-title">Items in this Order</h2>
+            </div>
+            <div class="divide-y divide-neutral-200 dark:divide-neutral-800">
+              {{ range .PageData.Items }}
+                <div class="flex flex-col gap-4 p-6 sm:flex-row">
+                  <div class="h-24 w-24 shrink-0 overflow-hidden rounded-md border border-neutral-200 bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-800">
+                    <img src="{{ .Image }}" alt="{{ .Name }}" class="h-full w-full object-contain mix-blend-multiply dark:mix-blend-normal" />
+                  </div>
+                  <div class="flex flex-1 flex-col justify-between">
+                    <div>
+                      <div class="flex justify-between">
+                        <h3 class="font-medium text-neutral-900 dark:text-white">
+                          <a href="/{{ .ID }}" class="hover:underline">{{ .Name }}</a>
+                        </h3>
+                        <p class="font-bold text-neutral-900 dark:text-white">{{ .Price }}</p>
+                      </div>
+                      <p class="mt-1 text-sm text-neutral-500 dark:text-neutral-400">{{ .Variant }}</p>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between">
+                      <div class="text-sm text-neutral-500 dark:text-neutral-400">Quantity: <span class="font-medium text-neutral-900 dark:text-neutral-200">{{ .Quantity }}</span></div>
+                      <a href="/{{ .ID }}" class="link-blue text-sm">Buy Again</a>
+                    </div>
+                  </div>
+                </div>
+              {{ end }}
+            </div>
+          </section>
+
+          <section class="card p-6">
+            <h3 class="mb-4 text-sm font-medium text-neutral-900 dark:text-white">Delivery Status</h3>
+            <div class="relative flex flex-col justify-between gap-4 sm:flex-row">
+              <div class="absolute top-1/2 left-0 hidden h-0.5 w-full -translate-y-1/2 bg-neutral-200 sm:block dark:bg-neutral-800"></div>
+
+              {{ range $index, $step := .PageData.Timeline }}
+                <div class="relative z-10 flex flex-1 flex-col items-center text-center">
+                  <div class="step-circle {{ if .Active }}step-circle-active{{ else }}step-circle-inactive{{ end }}">
+                    {{ if .Active }}
+                      <i data-lucide="check" class="h-4 w-4"></i>
+                    {{ else }}
+                      <span x-data="{ i: {{ $index }} }" x-text="i + 1"></span>
+                    {{ end }}
+                  </div>
+                  <div class="{{ if .Active }}text-neutral-900 dark:text-white{{ else }}text-neutral-500{{ end }} mt-2 text-sm font-medium">{{ .Status }}</div>
+                  <div class="text-xs text-neutral-500">{{ .Date }}</div>
+                </div>
+              {{ end }}
+            </div>
+          </section>
+        </div>
+
+        <div class="space-y-8">
+          <section class="card p-6">
+            <h2 class="mb-4 text-lg font-semibold text-neutral-900 dark:text-white">Order Summary</h2>
+            <div class="space-y-3 border-b border-neutral-200 pb-4 text-sm dark:border-neutral-800">
+              <div class="flex justify-between text-neutral-500 dark:text-neutral-400">
+                <span>Subtotal</span>
+                <span class="font-medium text-neutral-900 dark:text-neutral-200">{{ .PageData.Costs.Subtotal }}</span>
+              </div>
+              <div class="flex justify-between text-neutral-500 dark:text-neutral-400">
+                <span>Shipping</span>
+                <span class="font-medium text-neutral-900 dark:text-neutral-200">{{ .PageData.Costs.Shipping }}</span>
+              </div>
+              <div class="flex justify-between text-neutral-500 dark:text-neutral-400">
+                <span>Tax</span>
+                <span class="font-medium text-neutral-900 dark:text-neutral-200">{{ .PageData.Costs.Tax }}</span>
+              </div>
+            </div>
+            <div class="mt-4 flex justify-between text-base font-bold text-neutral-900 dark:text-white">
+              <span>Total</span>
+              <span>{{ .PageData.Costs.Total }}</span>
+            </div>
+          </section>
+
+          <section class="card overflow-hidden">
+            <div class="p-6">
+              <h3 class="mb-3 font-medium text-neutral-900 dark:text-white">Shipping Address</h3>
+              <address class="text-sm text-neutral-500 not-italic dark:text-neutral-400">
+                <span class="block text-neutral-900 dark:text-white">{{ .PageData.ShippingAddress.Name }}</span>
+                <span class="block">{{ .PageData.ShippingAddress.Street }}</span>
+                <span class="block">
+                  <span>{{ .PageData.ShippingAddress.City }}</span>,
+                  <span>{{ .PageData.ShippingAddress.State }}</span>
+                  <span>{{ .PageData.ShippingAddress.Zip }}</span>
+                </span>
+                <span class="mt-1 block">{{ .PageData.ShippingAddress.Country }}</span>
+              </address>
+            </div>
+
+            <div class="border-t border-neutral-200 p-6 dark:border-neutral-800">
+              <h3 class="mb-3 font-medium text-neutral-900 dark:text-white">Payment Method</h3>
+              <div class="flex items-center gap-3">
+                <div class="flex h-8 w-12 items-center justify-center rounded border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800">
+                  <i data-lucide="credit-card" class="h-4 w-auto text-blue-600"></i>
+                </div>
+                <div class="text-sm text-neutral-500 dark:text-neutral-400">
+                  <span class="block text-neutral-900 dark:text-white">{{ .PageData.PaymentMethod.Name }}</span>
+                  <span>{{ .PageData.PaymentMethod.Expiry }}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="rounded-lg border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900/50">
+            <h4 class="mb-2 font-medium text-neutral-900 dark:text-white">Need help?</h4>
+            <ul class="space-y-2 text-sm">
+              <li><a href="#" class="link-neutral">Returns & Refunds</a></li>
+              <li><a href="#" class="link-neutral">Contact Support</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("orderDetailPage", () => ({
+        init() {
+          this.$nextTick(() => {
+            if (window.lucide) lucide.createIcons();
+          });
+        },
+      }));
+    });
+  </script>
+{{ end }}

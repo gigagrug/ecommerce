@@ -1,0 +1,198 @@
+{{ block "content" . }}
+  {{ template "profilenav" }}
+  <div
+    x-data="profileSettingsPage({
+      profile: {
+          business: {{ .PageData.Profile.Business }},
+          subscription: '{{ .PageData.Profile.Subscription }}'
+      },
+      plans: [
+          {{ range .PageData.Plans }}
+      { id: '{{ .ID }}', name: '{{ .Name }}' },
+    {{ end }}
+      ]
+  })"
+    class="mx-auto px-4 py-8 md:py-12"
+  >
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold tracking-tight">Account Settings</h1>
+      <p class="mt-2 text-neutral-500 dark:text-neutral-400">Manage your profile, orders, payments, and preferences.</p>
+    </div>
+
+    <div id="statusBox" class="mb-6 hidden rounded-lg p-4 text-sm" role="alert">
+      <div class="flex items-center gap-2">
+        <i id="statusIcon" data-lucide="info" class="h-5 w-5 shrink-0"></i>
+        <span id="statusText" class="font-medium"></span>
+      </div>
+    </div>
+
+    <div class="space-y-8">
+      <section class="card overflow-hidden">
+        <div class="card-header">
+          <h2 class="card-title">General Information</h2>
+        </div>
+        <div class="p-6">
+          <form @submit.prevent="saveGeneral()" class="space-y-6">
+            <div class="grid gap-2 sm:grid-cols-3 sm:items-center">
+              <div>
+                <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Account Type</label>
+                <p class="text-xs text-neutral-500">Enable seller features.</p>
+              </div>
+              <div class="sm:col-span-2">
+                <div class="relative">
+                  <select x-model.number="profile.business" class="input select w-full appearance-none py-2 pr-10 pl-3">
+                    <option value="0">Normal User</option>
+                    <option value="1">Business Seller</option>
+                  </select>
+                  <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
+                    <i data-lucide="chevron-down" class="size-4 text-neutral-500"></i>
+                  </div>
+                </div>
+                <p x-show="profile.business === 1" class="mt-2 text-xs text-blue-600 dark:text-blue-400" style="display: none;" x-transition>
+                  <i data-lucide="info" class="mr-1 inline-block h-3 w-3"></i>
+                  Subscription settings are now available below.
+                </p>
+              </div>
+            </div>
+            <div class="flex justify-end pt-2">
+              <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="card overflow-hidden" x-show="profile.business === 1" style="display: none;" x-transition>
+        <div class="card-header flex items-center justify-between">
+          <h2 class="card-title">Subscription Plan</h2>
+          <span class="badge-blue" x-text="currentPlanName"></span>
+        </div>
+
+        <div class="p-6">
+          <div class="mb-6">
+            <h3 class="text-lg font-medium text-neutral-900 dark:text-white">Manage Your Plan</h3>
+            <p class="text-sm text-neutral-500">Upgrade or downgrade your business tier at any time.</p>
+          </div>
+
+          <div class="grid gap-6 lg:grid-cols-3">
+            {{ range .PageData.Plans }}
+              <div
+                class="relative flex flex-col p-6"
+                :class="profile.subscription === '{{ .ID }}' 
+                  ? 'rounded-xl border border-blue-600 bg-blue-50 ring-1 ring-blue-600 dark:border-blue-500 dark:bg-blue-900/20 dark:ring-blue-500' 
+                  : 'card card-hover'"
+              >
+                <div x-show="profile.subscription === '{{ .ID }}'" style="display: none;" class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-0.5 text-xs font-bold text-white shadow-sm dark:bg-blue-500">Current Plan</div>
+
+                <div class="mb-4">
+                  <h4 class="text-sm font-semibold text-neutral-900 dark:text-white">{{ .Name }}</h4>
+                  <div class="mt-2 flex items-baseline">
+                    <span class="text-3xl font-bold tracking-tight text-neutral-900 dark:text-white">${{ .Price }}</span>
+                    <span class="text-sm font-semibold text-neutral-500">/mo</span>
+                  </div>
+                  <p class="mt-1 h-4 text-xs text-neutral-500">
+                    {{ if .PerUser }}<span>per user</span>{{ end }}
+                  </p>
+                </div>
+
+                <ul class="mb-6 flex-1 space-y-3 text-sm text-neutral-600 dark:text-neutral-400">
+                  {{ range .Features }}
+                    <li class="flex items-start gap-2">
+                      <i data-lucide="check" class="mt-0.5 size-4 shrink-0 text-green-600 dark:text-green-500"></i>
+                      <span>{{ . }}</span>
+                    </li>
+                  {{ end }}
+                </ul>
+
+                <button
+                  type="button"
+                  @click="updatePlan('{{ .ID }}', '{{ .Name }}')"
+                  class="btn w-full"
+                  :class="profile.subscription === '{{ .ID }}' 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600' 
+                    : 'btn-ghost border border-neutral-200 dark:border-neutral-700'"
+                  :disabled="profile.subscription === '{{ .ID }}'"
+                >
+                  <span x-text="profile.subscription === '{{ .ID }}' ? 'Active' : 'Select Plan'"></span>
+                </button>
+              </div>
+            {{ end }}
+
+          </div>
+
+          <div class="mt-8 rounded-lg bg-neutral-50 p-4 text-xs text-neutral-500 dark:bg-neutral-900/50">
+            <p><strong>Note:</strong> Changes to your subscription will be reflected in your next billing cycle.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+{{ end }}
+
+{{ block "js" . }}
+  <script>
+    document.addEventListener("alpine:init", () => {
+      // Receive the injected Go data
+      Alpine.data("profileSettingsPage", (goData) => ({
+        profile: goData.profile,
+        plans: goData.plans,
+
+        init() {
+          // Initialize icons
+          this.$nextTick(() => lucide.createIcons());
+          // Re-render icons if business state changes (showing new section)
+          this.$watch("profile.business", () => this.$nextTick(() => lucide.createIcons()));
+        },
+
+        get currentPlanName() {
+          const plan = this.plans.find((p) => p.id === this.profile.subscription);
+          return plan ? plan.name : "None";
+        },
+
+        async saveGeneral() {
+          try {
+            const res = await fetch("/api/profile-settings/account-type", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ accountType: this.profile.business }),
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            this.showAlert(this.profile.business === 1 ? "Business account activated!" : "Reverted to normal account.", "success");
+          } catch (e) {
+            this.showAlert(e.message, "error");
+          }
+        },
+
+        async updatePlan(planId, planName) {
+          if (!confirm(`Switch subscription to ${planName}?`)) return;
+
+          try {
+            const res = await fetch("/api/profile-settings/subscription", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ planId: planId }),
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            this.profile.subscription = planId;
+            this.showAlert(`Subscription updated to ${planName}.`, "success");
+          } catch (e) {
+            this.showAlert(e.message, "error");
+          }
+        },
+
+        showAlert(msg, type = "success") {
+          const box = document.getElementById("statusBox");
+          document.getElementById("statusText").innerText = msg;
+          box.classList.remove("hidden", "bg-red-50", "text-red-800", "bg-green-50", "text-green-800");
+          if (type === "error") box.classList.add("bg-red-50", "text-red-800", "dark:bg-red-900/20", "dark:text-red-400");
+          else box.classList.add("bg-green-50", "text-green-800", "dark:bg-green-900/20", "dark:text-green-400");
+          box.classList.remove("hidden");
+          setTimeout(() => box.classList.add("hidden"), 3000);
+        },
+      }));
+    });
+  </script>
+{{ end }}

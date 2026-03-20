@@ -1,0 +1,363 @@
+{{ block "content" . }}
+  <div
+    x-data="productPage({
+      id: '{{ .PageData.ID }}',
+      name: '{{ .PageData.Name }}',
+      gallery: [{{ range .PageData.Gallery }}'{{ . }}',{{ end }}],
+      basePrice: {{ if .PageData.DiscountPrice }}
+      {{ .PageData.DiscountPrice }}
+    {{ else }}
+      {{ .PageData.Price }}
+    {{ end }},
+      siblings: {{ if .PageData.SiblingsJSON }}
+      {{ .PageData.SiblingsJSON }}
+    {{ else }}
+      []
+    {{ end }},
+      currentVars: {{ if .PageData.CurrentVarsJSON }}
+      {{ .PageData.CurrentVarsJSON }}
+    {{ else }}
+      {}
+    {{ end }}
+  })"
+  >
+    <section class="mx-auto 2xl:px-0">
+      <div class="lg:grid lg:grid-cols-2 lg:gap-12 xl:gap-16">
+        <div class="mx-auto max-w-md shrink-0 lg:max-w-lg">
+          <div class="group relative aspect-square overflow-hidden rounded-2xl border border-neutral-100 bg-neutral-50 p-8 dark:border-neutral-800 dark:bg-neutral-900">
+            <img class="h-full w-full object-contain mix-blend-multiply transition-transform duration-500 hover:scale-105 dark:mix-blend-normal" :src="currentImage || 'https://placehold.co/600x600?text=No+Image'" alt="{{ .PageData.Name }}" />
+
+            <button @click="prevImage" class="absolute top-1/2 left-4 flex -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white p-2 text-neutral-600 opacity-0 shadow-lg group-hover:opacity-100 hover:bg-neutral-50 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700" aria-label="Previous image">
+              <i data-lucide="chevron-left" class="size-5"></i>
+            </button>
+
+            <button @click="nextImage" class="absolute top-1/2 right-4 flex -translate-y-1/2 items-center justify-center rounded-full border border-neutral-200 bg-white p-2 text-neutral-600 opacity-0 shadow-lg group-hover:opacity-100 hover:bg-neutral-50 focus:outline-hidden dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700" aria-label="Next image">
+              <i data-lucide="chevron-right" class="size-5"></i>
+            </button>
+          </div>
+
+          <div class="mt-4 grid grid-cols-5 gap-4">
+            <template x-for="img in gallery" :key="img">
+              <button @click="currentImage = img" class="aspect-square overflow-hidden rounded-xl border-2 hover:opacity-80 focus:outline-hidden" :class="currentImage === img ? 'border-blue-600 ring-2 ring-blue-600/20' : 'border-neutral-100 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900'">
+                <img :src="img" class="h-full w-full object-contain p-2" />
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <div class="mt-8 flex flex-col justify-center lg:mt-0">
+          <h1 class="text-3xl font-extrabold tracking-tight text-neutral-900 sm:text-4xl dark:text-white">{{ .PageData.Name }}</h1>
+
+          <div class="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div class="flex items-baseline gap-2">
+              {{ if .PageData.DiscountPrice }}
+                <div class="flex items-baseline gap-2">
+                  <p class="text-3xl font-bold text-red-600 dark:text-red-500">${{ .PageData.DiscountPrice }}</p>
+                  <del class="text-xl font-medium text-neutral-400 decoration-2">${{ .PageData.Price }}</del>
+                  <span class="badge-red-soft">SALE</span>
+                </div>
+              {{ else }}
+                <p class="text-3xl font-bold text-neutral-900 dark:text-white">${{ .PageData.Price }}</p>
+              {{ end }}
+            </div>
+
+            <div class="flex items-center gap-2 sm:border-l sm:border-neutral-200 sm:pl-4 dark:sm:border-neutral-700">
+              <div class="star-rating flex items-center text-yellow-400">
+                <i data-lucide="star" class="size-4 fill-current"></i>
+                <span class="ml-1 text-sm font-bold text-neutral-900 dark:text-white">{{ printf "%.1f" .PageData.Rating }}</span>
+              </div>
+              <a href="#reviews" class="link-blue">({{ .PageData.ReviewsCount }} Reviews)</a>
+            </div>
+          </div>
+
+          <hr class="my-6 border-neutral-200 dark:border-neutral-800" />
+
+          <div class="space-y-5">
+            {{ range .PageData.Variations }}
+              <div>
+                <label class="text-sm font-medium text-neutral-900 dark:text-white">
+                  <span>{{ .Name }}</span>:
+                  <span class="font-normal text-neutral-500" x-text="currentVars['{{ .Name }}']"></span>
+                </label>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  {{ $variantName := .Name }}
+                  {{ range .Options }}
+                    <button
+                      type="button"
+                      class="rounded-lg border px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden"
+                      :class="currentVars['{{ $variantName }}'] === '{{ . }}' 
+                              ? 'border-blue-600 bg-blue-50 text-blue-700 font-medium dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-500' 
+                              : 'border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 dark:border-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-900'"
+                      @click="selectVariation('{{ $variantName }}', '{{ . }}')"
+                    >
+                      {{ . }}
+                    </button>
+                  {{ end }}
+                </div>
+              </div>
+            {{ end }}
+          </div>
+
+          <div class="mt-8 flex gap-4">
+            <button type="button" @click="addToCart" class="btn btn-primary flex-1 px-8 py-3.5 text-base shadow-lg shadow-blue-700/20">
+              <i data-lucide="shopping-cart" class="size-5"></i>
+              <span>Add to cart</span>
+              <span x-text="`• $${basePrice}`"></span>
+            </button>
+
+            <div class="relative" x-data="{ open: false }">
+              <button type="button" @click="open = !open" @click.outside="open = false" class="btn btn-ghost h-full border border-neutral-200 p-3 dark:border-neutral-800" title="Save to list">
+                <i data-lucide="heart" class="size-6" :class="isSavedAnywhere ? 'fill-red-500 text-red-500' : 'text-neutral-500 dark:text-neutral-400'"></i>
+              </button>
+
+              <div x-show="open" x-transition.origin.top.right style="display: none;" class="absolute top-full right-0 z-20 mt-2 w-72 rounded-xl border border-neutral-200 bg-white p-4 shadow-xl dark:border-neutral-800 dark:bg-neutral-900">
+                <div class="mb-3 flex items-center justify-between">
+                  <h3 class="text-sm font-semibold text-neutral-900 dark:text-white">Save to List</h3>
+                  <button @click="open = false" class="text-neutral-400 hover:text-neutral-900 dark:hover:text-white">
+                    <i data-lucide="x" class="size-4"></i>
+                  </button>
+                </div>
+                <div class="mb-3 max-h-48 space-y-1 overflow-y-auto">
+                  <template x-for="list in userLists" :key="list.id">
+                    <button @click="toggleInList(list.id)" class="group flex w-full items-center justify-between rounded-lg p-2 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800">
+                      <span class="truncate font-medium text-neutral-700 dark:text-neutral-300" x-text="list.name"></span>
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs text-neutral-400" x-text="`${list.items.length} items`"></span>
+                        <div class="flex size-5 items-center justify-center rounded-full border border-neutral-300 bg-white group-hover:border-blue-500 dark:border-neutral-600 dark:bg-neutral-900" :class="list.items.includes(id) ? 'border-blue-500! bg-blue-500!' : ''">
+                          <i data-lucide="check" class="size-3 text-white" x-show="list.items.includes(id)"></i>
+                        </div>
+                      </div>
+                    </button>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 flex items-start gap-3">
+            <i data-lucide="truck" class="mt-0.5 size-5 text-neutral-500"></i>
+            <p class="text-sm text-neutral-500 dark:text-neutral-400">
+              <span class="font-semibold text-neutral-900 dark:text-white">Fast standard shipping.</span><br />
+              Order within <span class="font-medium text-blue-600">23h 15m</span> to get it by Thursday.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-12 border-t border-neutral-200 bg-neutral-50/50 dark:border-neutral-800 dark:bg-neutral-900/50">
+      <div class="mx-auto max-w-7xl p-10">
+        <h2 class="mb-4 text-2xl font-bold text-neutral-900 dark:text-white">Product Description</h2>
+        <p class="text-lg leading-relaxed text-neutral-600 dark:text-neutral-300">{{ .PageData.Description }}</p>
+      </div>
+    </section>
+
+    <section id="reviews" class="py-16">
+      <div class="mx-auto max-w-7xl px-4 2xl:px-0">
+        <div>
+          <div class="flex items-end gap-4">
+            <h2 class="text-3xl font-bold text-neutral-900 dark:text-white">Reviews</h2>
+            <div class="mb-1 flex items-center gap-2">
+              <div class="star-rating flex text-yellow-400">
+                <i data-lucide="star" class="size-5 fill-current"></i>
+              </div>
+              <p class="text-base font-medium text-neutral-500 dark:text-neutral-400">{{ printf "%.1f" .PageData.Rating }} out of 5</p>
+            </div>
+          </div>
+
+          <div class="my-8 gap-12 sm:flex sm:items-start">
+            <div class="shrink-0 space-y-6 rounded-xl border border-neutral-100 bg-neutral-50 p-6 text-center shadow-sm sm:w-64 dark:border-neutral-800 dark:bg-neutral-900">
+              <div class="space-y-1">
+                <p class="text-5xl font-extrabold text-neutral-900 dark:text-white">{{ printf "%.1f" .PageData.Rating }}</p>
+                <p class="text-sm text-neutral-500">out of 5</p>
+              </div>
+              <button popovertarget="review-popover" type="button" class="btn btn-primary w-full">Write a review</button>
+            </div>
+
+            <div class="mt-8 min-w-0 flex-1 space-y-4 sm:mt-0">
+              {{ range .PageData.ReviewStats }}
+                <div class="flex items-center gap-3">
+                  <span class="w-3 text-sm font-bold text-neutral-900 dark:text-white">{{ .Stars }}</span>
+                  <i data-lucide="star" class="size-4 fill-current text-yellow-400"></i>
+                  <div class="h-2.5 flex-1 rounded-full bg-neutral-100 dark:bg-neutral-800">
+                    <div class="h-2.5 rounded-full bg-yellow-400" style="width: {{ .Percentage }}%"></div>
+                  </div>
+                  <span class="w-10 text-right text-sm font-medium text-neutral-500">{{ .Percentage }}%</span>
+                </div>
+              {{ end }}
+            </div>
+          </div>
+
+          <div class="mt-12 divide-y divide-neutral-200 border-t border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+            {{ if eq (len .PageData.Reviews) 0 }}
+              <div class="py-12 text-center text-neutral-500">No reviews yet. Be the first to review this product!</div>
+            {{ end }}
+
+            {{ range .PageData.Reviews }}
+              <div class="gap-6 py-8 sm:flex sm:items-start">
+                <div class="shrink-0 space-y-3 sm:w-48 md:w-64">
+                  <div class="flex items-center gap-2">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-200 font-bold text-neutral-600 dark:bg-neutral-700 dark:text-neutral-300">{{ .Initials }}</div>
+                    <div>
+                      <p class="text-sm font-bold text-neutral-900 dark:text-white">{{ .UserName }}</p>
+                      <p class="text-xs text-neutral-500 dark:text-neutral-400">{{ .Date }}</p>
+                    </div>
+                  </div>
+                  {{ if .IsVerified }}
+                    <div class="badge-green">
+                      <i data-lucide="badge-check" class="me-1 size-3.5"></i>
+                      Verified Purchase
+                    </div>
+                  {{ end }}
+                </div>
+
+                <div class="mt-4 min-w-0 flex-1 sm:mt-0">
+                  <div class="mb-2 flex items-center text-yellow-400">
+                    <i data-lucide="star" class="size-4" :class="{{ .Rating }} >= 1 ? 'fill-current' : 'text-neutral-300 dark:text-neutral-700'"></i>
+                    <i data-lucide="star" class="size-4" :class="{{ .Rating }} >= 2 ? 'fill-current' : 'text-neutral-300 dark:text-neutral-700'"></i>
+                    <i data-lucide="star" class="size-4" :class="{{ .Rating }} >= 3 ? 'fill-current' : 'text-neutral-300 dark:text-neutral-700'"></i>
+                    <i data-lucide="star" class="size-4" :class="{{ .Rating }} >= 4 ? 'fill-current' : 'text-neutral-300 dark:text-neutral-700'"></i>
+                    <i data-lucide="star" class="size-4" :class="{{ .Rating }} >= 5 ? 'fill-current' : 'text-neutral-300 dark:text-neutral-700'"></i>
+                  </div>
+                  <p class="text-base leading-relaxed text-neutral-600 dark:text-neutral-300">{{ .Comment }}</p>
+                </div>
+              </div>
+            {{ end }}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="review-popover" popover class="open:animate-in open:fade-in open:zoom-in-95 fixed m-auto w-full max-w-2xl rounded-2xl bg-white p-0 shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm dark:bg-neutral-900">
+      <div class="relative max-h-full w-full">
+        <div class="flex items-center justify-between border-b border-neutral-200 p-5 dark:border-neutral-800">
+          <h3 class="text-lg font-bold text-neutral-900 dark:text-white">Write a review</h3>
+          <button type="button" popovertarget="review-popover" popovertargetaction="hide" class="btn btn-ghost rounded-full p-2">
+            <i data-lucide="x" class="size-5"></i>
+          </button>
+        </div>
+
+        <form action="/api/review/{{ .PageData.ID }}" method="POST" class="p-6">
+          <div class="space-y-6">
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-neutral-900 dark:text-white">Rating</label>
+              <input type="hidden" name="rating" :value="reviewRating" />
+              <div class="flex gap-1 text-yellow-400">
+                <template x-for="i in 5">
+                  <button type="button" @click="reviewRating = i" @mouseover="hoverRating = i" @mouseleave="hoverRating = 0" class="focus:outline-hidden">
+                    <i data-lucide="star" class="size-8 transition-colors" :class="(hoverRating || reviewRating) >= i ? 'fill-current' : 'text-neutral-300 dark:text-neutral-700'"></i>
+                  </button>
+                </template>
+              </div>
+            </div>
+
+            <div>
+              <label for="review" class="mb-2 block text-sm font-semibold text-neutral-900 dark:text-white">Review</label>
+              <textarea name="review" id="review" rows="4" class="input resize-none py-3" placeholder="What did you like or dislike?" required></textarea>
+            </div>
+
+            <div class="mt-8 flex items-center justify-end gap-3 border-t border-neutral-200 pt-5 dark:border-neutral-800">
+              <button type="button" popovertarget="review-popover" popovertargetaction="hide" class="btn btn-ghost">Cancel</button>
+              <button type="submit" class="btn btn-primary" :disabled="reviewRating === 0">Submit Review</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{{ end }}
+
+{{ block "js" . }}
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("productPage", (goData) => ({
+        id: goData.id,
+        name: goData.name,
+        gallery: goData.gallery,
+        currentImage: goData.gallery.length > 0 ? goData.gallery[0] : "",
+        basePrice: parseFloat(goData.basePrice).toFixed(2),
+
+        siblings: goData.siblings,
+        currentVars: goData.currentVars,
+
+        reviewRating: 0,
+        hoverRating: 0,
+
+        userLists: [
+          { id: 1, name: "Wishlist", items: [] },
+          { id: 2, name: "Gift Ideas", items: [] },
+        ],
+
+        init() {
+          this.$nextTick(() => {
+            if (window.lucide) lucide.createIcons();
+          });
+          this.$watch("currentImage", () => this.$nextTick(() => lucide.createIcons()));
+          this.$watch("hoverRating", () => this.$nextTick(() => lucide.createIcons()));
+          this.$watch("reviewRating", () => this.$nextTick(() => lucide.createIcons()));
+        },
+
+        nextImage() {
+          if (this.gallery.length === 0) return;
+          let i = this.gallery.indexOf(this.currentImage);
+          this.currentImage = this.gallery[(i + 1) % this.gallery.length];
+        },
+
+        prevImage() {
+          if (this.gallery.length === 0) return;
+          let i = this.gallery.indexOf(this.currentImage);
+          this.currentImage = this.gallery[(i - 1 + this.gallery.length) % this.gallery.length];
+        },
+
+        selectVariation(key, newValue) {
+          // 1. Create the target combination we want to find
+          const targetVars = { ...this.currentVars, [key]: newValue };
+
+          // 2. Look for an exact match in our sibling list
+          let targetProduct = this.siblings.find((sib) => {
+            return Object.entries(targetVars).every(([k, v]) => sib.variations[k] === v);
+          });
+
+          // 3. Fallback: Find ANY product that has the newly selected variation value
+          if (!targetProduct) {
+            targetProduct = this.siblings.find((sib) => sib.variations[key] === newValue);
+          }
+
+          // 4. Redirect to the new product page to load its specific pricing and images!
+          if (targetProduct && targetProduct.id.toString() !== this.id.toString()) {
+            window.location.href = `/${targetProduct.id}`;
+          }
+        },
+
+        get isSavedAnywhere() {
+          return this.userLists.some((l) => l.items.includes(this.id));
+        },
+
+        toggleInList(listId) {
+          const l = this.userLists.find((l) => l.id === listId);
+          if (l) l.items = l.items.includes(this.id) ? l.items.filter((i) => i !== this.id) : [...l.items, this.id];
+        },
+
+        addToCart() {
+          const match = document.cookie.match(new RegExp("(^| )cart=([^;]+)"));
+          let cart = match ? JSON.parse(decodeURIComponent(match[2])) : [];
+
+          // Since every variation is a unique product ID, we only need to match the ID!
+          let existingItem = cart.find((item) => item.productId === this.id.toString());
+
+          if (existingItem) {
+            existingItem.quantity++;
+          } else {
+            cart.push({
+              productId: this.id.toString(),
+              quantity: 1,
+            });
+          }
+
+          document.cookie = `cart=${encodeURIComponent(JSON.stringify(cart))}; path=/; max-age=2592000`;
+          alert(`${this.name} added to cart!`);
+        },
+      }));
+    });
+  </script>
+{{ end }}

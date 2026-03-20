@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS _schema_migrations (
+	id SERIAL PRIMARY KEY,
+	file VARCHAR(255) UNIQUE,
+	migrated BOOLEAN DEFAULT false
+);

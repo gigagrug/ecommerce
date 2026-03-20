@@ -1,0 +1,168 @@
+CREATE TABLE IF NOT EXISTS users (
+	id SERIAL PRIMARY KEY,
+	name TEXT,
+	email TEXT UNIQUE NOT NULL,
+	password_hash TEXT,
+	pending_email TEXT,
+	verified BOOLEAN DEFAULT false,
+	verification_token TEXT,
+	token_expires BIGINT,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+	token TEXT PRIMARY KEY,
+	user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	expires BIGINT NOT NULL,
+	os TEXT,
+	browser TEXT,
+	ip_address TEXT,
+	location TEXT,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS addresses (
+	id SERIAL PRIMARY KEY,
+	user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	full_name TEXT NOT NULL,
+	address_line1 TEXT NOT NULL,
+	address_line2 TEXT,
+	city TEXT NOT NULL,
+	state TEXT NOT NULL,
+	postal_code TEXT NOT NULL,
+	country TEXT NOT NULL,
+	phone TEXT,
+	is_default_shipping BOOLEAN DEFAULT false,
+	is_default_billing BOOLEAN DEFAULT false,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS employees (
+	id SERIAL PRIMARY KEY,
+	user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+	email TEXT UNIQUE NOT NULL,
+	roles JSONB NOT NULL DEFAULT '["Viewer"]',
+	status TEXT NOT NULL DEFAULT 'invited',
+	joined_at TIMESTAMP,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS categories (
+	id SERIAL PRIMARY KEY,
+	name TEXT NOT NULL,
+	slug TEXT UNIQUE NOT NULL,
+	parent_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS product_groups (
+	id SERIAL PRIMARY KEY,
+	name TEXT NOT NULL,
+	variation_types JSONB NOT NULL DEFAULT '[]',
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS products (
+	id SERIAL PRIMARY KEY,
+	group_id INT REFERENCES product_groups(id) ON DELETE CASCADE,
+	name TEXT NOT NULL,
+	description TEXT NOT NULL,
+	price DECIMAL(10,2) NOT NULL,
+	discount_price DECIMAL(10,2),
+	stock INT DEFAULT 0,
+	gallery JSONB DEFAULT '[]',
+	variations JSONB DEFAULT '{}',
+	is_free_shipping BOOLEAN DEFAULT false,
+	is_active BOOLEAN DEFAULT true,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS product_images (
+	id SERIAL PRIMARY KEY,
+	product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+	image_url TEXT NOT NULL,
+	is_primary BOOLEAN DEFAULT false,
+	display_order INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS product_categories (
+	product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+	category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+	PRIMARY KEY (product_id, category_id)
+);
+
+CREATE TABLE IF NOT EXISTS reviews (
+	id SERIAL PRIMARY KEY,
+	user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+	rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+	comment TEXT,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	UNIQUE(user_id, product_id)
+);
+
+CREATE TABLE IF NOT EXISTS cart_items (
+	id SERIAL PRIMARY KEY,
+	user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+	quantity INTEGER DEFAULT 1,
+	added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	UNIQUE(user_id, product_id)
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+	id TEXT PRIMARY KEY,
+	user_id INT REFERENCES users(id) ON DELETE SET NULL,
+	customer_name TEXT NOT NULL,
+	customer_email TEXT NOT NULL,
+	status TEXT DEFAULT 'Processing',
+	total_amount DECIMAL(10,2) NOT NULL,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS order_items (
+	id SERIAL PRIMARY KEY,
+	order_id TEXT REFERENCES orders(id) ON DELETE CASCADE,
+	product_id INT REFERENCES products(id),
+	quantity INT NOT NULL,
+	price DECIMAL(10,2) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+	id SERIAL PRIMARY KEY,
+	order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+	stripe_payment_intent_id TEXT UNIQUE,
+	amount INTEGER NOT NULL,
+	status TEXT,
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS support_tickets (
+	id SERIAL PRIMARY KEY,
+	name TEXT NOT NULL,
+	email TEXT NOT NULL,
+	subject TEXT NOT NULL,
+	message TEXT NOT NULL,
+	status TEXT DEFAULT 'open',
+	priority TEXT DEFAULT 'normal',
+	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- schema rollback
+
+DROP TABLE IF EXISTS support_tickets CASCADE;
+DROP TABLE IF EXISTS payments CASCADE;
+DROP TABLE IF EXISTS order_items CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS cart_items CASCADE;
+DROP TABLE IF EXISTS reviews CASCADE;
+DROP TABLE IF EXISTS product_categories CASCADE;
+DROP TABLE IF EXISTS product_images CASCADE;
+DROP TABLE IF EXISTS product_groups CASCADE;
+DROP TABLE IF EXISTS products CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS employees CASCADE;
+DROP TABLE IF EXISTS addresses CASCADE;
+DROP TABLE IF EXISTS sessions CASCADE;
+DROP TABLE IF EXISTS users CASCADE;

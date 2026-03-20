@@ -1,0 +1,595 @@
+{{ block "content" . }}
+  {{ template "profilenav" }}
+  <div x-data="profilePage" class="mx-auto px-4 py-8 md:py-12">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold tracking-tight">Account Settings</h1>
+      <p class="mt-2 text-neutral-500 dark:text-neutral-400">Manage your profile, orders, payments, and preferences.</p>
+    </div>
+
+    <div id="statusBox" class="mb-6 hidden rounded-lg p-4 text-sm" role="alert">
+      <div class="flex items-center gap-2">
+        <i id="statusIcon" data-lucide="info" class="h-5 w-5 shrink-0"></i>
+        <span id="statusText" class="font-medium"></span>
+      </div>
+    </div>
+
+    <div class="space-y-8">
+      <section class="card overflow-hidden">
+        <div class="card-header">
+          <h2 class="card-title">General Information</h2>
+        </div>
+        <div class="p-6">
+          <form @submit.prevent="saveGeneral()" class="space-y-6">
+            <div class="grid gap-2 sm:grid-cols-3 sm:items-center">
+              <label for="name" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Display Name</label>
+              <div class="flex gap-2 sm:col-span-2">
+                <input type="text" id="name" x-model="profile.name" class="input bg-white dark:bg-neutral-900" required />
+
+                <button type="submit" id="saveGeneralBtn" class="btn btn-primary whitespace-nowrap">
+                  <span>Save Name</span>
+                  <i data-lucide="loader-circle" class="spinner ml-2 hidden h-4 w-4 animate-spin"></i>
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <hr class="my-6 border-neutral-200 dark:border-neutral-800" />
+
+          <div class="grid gap-2 sm:grid-cols-3 sm:items-start">
+            <div>
+              <label class="block text-sm font-medium text-neutral-700 dark:text-neutral-300">Email Address</label>
+              <p class="text-xs text-neutral-500">Used for login and notifications.</p>
+            </div>
+
+            <div class="space-y-3 sm:col-span-2">
+              <div class="flex gap-2" x-show="emailStep === 1">
+                <input type="email" x-model="newEmailInput" class="input bg-white dark:bg-neutral-900" required />
+                <button type="button" @click="requestEmailChange()" id="reqEmailBtn" class="btn btn-ghost border border-neutral-200 whitespace-nowrap dark:border-neutral-700" :disabled="newEmailInput === profile.email">
+                  <span>Update</span>
+                  <i data-lucide="loader-circle" class="spinner ml-2 hidden h-4 w-4 animate-spin"></i>
+                </button>
+              </div>
+
+              <div class="rounded-lg border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900/30" x-show="emailStep === 2" style="display: none;" x-transition>
+                <label class="mb-2 block text-sm font-medium">Enter Verification Code</label>
+                <p class="mb-3 text-xs text-neutral-500">We sent a 6-digit code to <span class="font-bold text-neutral-900 dark:text-white" x-text="newEmailInput"></span>.</p>
+                <div class="flex gap-2">
+                  <input type="text" x-model="emailOtp" placeholder="123456" class="input bg-white tracking-widest dark:bg-neutral-900" maxlength="6" />
+                  <button type="button" @click="verifyEmailChange()" id="verifyEmailBtn" class="btn btn-primary whitespace-nowrap">
+                    <span>Verify</span>
+                    <i data-lucide="loader-circle" class="spinner ml-2 hidden h-4 w-4 animate-spin"></i>
+                  </button>
+                </div>
+                <button type="button" @click="emailStep = 1" class="mt-2 text-xs font-medium text-neutral-500 hover:text-neutral-700">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card overflow-hidden">
+        <div class="card-header">
+          <h2 class="card-title">Payment Methods</h2>
+        </div>
+        <div class="p-6">
+          <div class="space-y-4">
+            <template x-for="method in profile.paymentMethods" :key="method.id">
+              <div class="list-group-item flex items-center justify-between p-4">
+                <div class="flex items-center gap-4">
+                  <div class="icon-box icon-box-md">
+                    <template x-if="method.type === 'Visa'">
+                      <i data-lucide="credit-card" class="size-5 text-blue-600"></i>
+                    </template>
+                    <template x-if="method.type === 'Mastercard'">
+                      <i data-lucide="credit-card" class="size-5 text-red-500"></i>
+                    </template>
+                    <template x-if="method.type === 'Bank'">
+                      <i data-lucide="landmark" class="size-5 text-neutral-500"></i>
+                    </template>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <p class="font-medium" x-text="method.name"></p>
+                      <template x-if="method.isDefault">
+                        <span class="badge-blue">Default</span>
+                      </template>
+                    </div>
+                    <p class="text-sm text-neutral-500" x-text="method.details"></p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button x-show="!method.isDefault" @click="makePaymentDefault(method.id)" class="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400">Set Default</button>
+                  <button @click="removePaymentMethod(method.id)" class="btn-icon-danger">
+                    <i data-lucide="trash-2" class="size-4"></i>
+                  </button>
+                </div>
+              </div>
+            </template>
+
+            <div x-show="!showPaymentForm" @click="showPaymentForm = true" class="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-50 p-6 text-neutral-500 hover:border-neutral-300 hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:bg-neutral-800">
+              <i data-lucide="plus" class="mb-2 size-6"></i>
+              <span class="text-sm font-medium">Add Card or Bank Account</span>
+            </div>
+
+            <div x-show="showPaymentForm" class="rounded-lg border border-neutral-200 bg-neutral-50 p-5 dark:border-neutral-800 dark:bg-neutral-900/30">
+              <form @submit.prevent="addPaymentMethod()" class="space-y-4">
+                <div class="flex gap-4">
+                  <label class="flex cursor-pointer items-center gap-2">
+                    <input type="radio" name="payType" value="Card" x-model="newPayment.category" class="radio" />
+                    <span class="text-sm font-medium">Credit/Debit Card</span>
+                  </label>
+                  <label class="flex cursor-pointer items-center gap-2">
+                    <input type="radio" name="payType" value="Bank" x-model="newPayment.category" class="radio" />
+                    <span class="text-sm font-medium">Bank Account</span>
+                  </label>
+                </div>
+                <div x-show="newPayment.category === 'Card'" class="space-y-3">
+                  <input type="text" x-model="newPayment.name" placeholder="Name on Card" class="input bg-white dark:bg-neutral-900" required />
+                  <div class="grid grid-cols-2 gap-3">
+                    <input type="text" x-model="newPayment.number" placeholder="Card Number" class="input bg-white dark:bg-neutral-900" maxlength="19" required />
+                    <div class="flex gap-2">
+                      <input type="text" x-model="newPayment.expiry" placeholder="MM/YY" class="input bg-white dark:bg-neutral-900" maxlength="5" required />
+                      <input type="text" placeholder="CVC" class="input bg-white dark:bg-neutral-900" maxlength="3" />
+                    </div>
+                  </div>
+                  <select x-model="newPayment.type" class="input bg-white dark:bg-neutral-900">
+                    <option value="Visa">Visa</option>
+                    <option value="Mastercard">Mastercard</option>
+                  </select>
+                </div>
+                <div x-show="newPayment.category === 'Bank'" class="space-y-3" style="display: none;">
+                  <input type="text" x-model="newPayment.name" placeholder="Account Holder Name" class="input bg-white dark:bg-neutral-900" />
+                  <input type="text" placeholder="Bank Name (e.g. Chase)" class="input bg-white dark:bg-neutral-900" />
+                  <div class="grid grid-cols-2 gap-3">
+                    <input type="text" x-model="newPayment.number" placeholder="Account Number" class="input bg-white dark:bg-neutral-900" />
+                    <input type="text" placeholder="Routing Number" class="input bg-white dark:bg-neutral-900" />
+                  </div>
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-2">
+                  <button type="button" @click="showPaymentForm = false" class="btn btn-ghost text-xs">Cancel</button>
+                  <button type="submit" class="btn btn-primary px-4 py-2 text-xs">Save Method</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card overflow-hidden">
+        <div class="card-header">
+          <h2 class="card-title">Saved Addresses</h2>
+        </div>
+        <div class="p-6">
+          <div class="grid gap-4 md:grid-cols-2">
+            <template x-for="addr in profile.addresses" :key="addr.id">
+              <div class="list-group-item relative p-4">
+                <div class="mb-2 flex items-start justify-between">
+                  <div class="flex items-center gap-2">
+                    <i data-lucide="map-pin" class="size-4 text-neutral-400"></i>
+                    <span class="font-medium" x-text="addr.label"></span>
+                    <template x-if="addr.isDefault">
+                      <span class="badge-blue">Default</span>
+                    </template>
+                  </div>
+                  <button @click="removeAddress(addr.id)" class="btn-icon-danger">
+                    <i data-lucide="trash-2" class="size-4"></i>
+                  </button>
+                </div>
+                <p class="text-sm text-neutral-600 dark:text-neutral-400" x-text="addr.street"></p>
+                <p class="text-sm text-neutral-600 dark:text-neutral-400" x-text="`${addr.city}, ${addr.zip}`"></p>
+                <div class="mt-4" x-show="!addr.isDefault">
+                  <button @click="makeAddressDefault(addr.id)" class="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400">Set as Default</button>
+                </div>
+              </div>
+            </template>
+
+            <div x-show="!showAddrForm" @click="showAddrForm = true" class="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-50 p-6 text-neutral-500 hover:border-neutral-300 hover:bg-neutral-100 dark:border-neutral-800 dark:bg-neutral-900/50 dark:hover:bg-neutral-800">
+              <i data-lucide="plus" class="mb-2 size-6"></i>
+              <span class="text-sm font-medium">Add New Address</span>
+            </div>
+
+            <div x-show="showAddrForm" class="col-span-full rounded-lg border border-neutral-200 bg-neutral-50 p-4 dark:border-neutral-800 dark:bg-neutral-900/30">
+              <form @submit.prevent="addAddress()" class="space-y-4">
+                <div class="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">Address Label (e.g. Home, Work)</label>
+                    <input type="text" x-model="newAddr.label" class="input bg-white dark:bg-neutral-900" required />
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">Full Name</label>
+                    <input type="text" x-model="newAddr.fullName" autocomplete="name" class="input bg-white dark:bg-neutral-900" required />
+                  </div>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                  <div class="md:col-span-2">
+                    <label class="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">Street Address</label>
+                    <input type="text" x-model="newAddr.street1" autocomplete="address-line1" placeholder="123 Main St" class="input bg-white dark:bg-neutral-900" required />
+                  </div>
+                  <div class="md:col-span-2">
+                    <label class="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">Apt, Suite, Bldg (Optional)</label>
+                    <input type="text" x-model="newAddr.street2" autocomplete="address-line2" class="input bg-white dark:bg-neutral-900" />
+                  </div>
+                </div>
+
+                <div class="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                  <div class="sm:col-span-2">
+                    <label class="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">City</label>
+                    <input type="text" x-model="newAddr.city" autocomplete="address-level2" class="input bg-white dark:bg-neutral-900" required />
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">State / Prov</label>
+                    <input type="text" x-model="newAddr.state" autocomplete="address-level1" class="input bg-white dark:bg-neutral-900" required />
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">ZIP / Postal</label>
+                    <input type="text" x-model="newAddr.zip" autocomplete="postal-code" class="input bg-white dark:bg-neutral-900" required />
+                  </div>
+                </div>
+
+                <div class="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">Country</label>
+                    <select x-model="newAddr.country" autocomplete="country" class="input select bg-white dark:bg-neutral-900">
+                      <option value="US">United States</option>
+                      <option value="CA">Canada</option>
+                      <option value="UK">United Kingdom</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-neutral-700 dark:text-neutral-300">Phone Number</label>
+                    <input type="tel" x-model="newAddr.phone" autocomplete="tel" class="input bg-white dark:bg-neutral-900" required />
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-4">
+                  <button type="button" @click="showAddrForm = false" class="btn btn-ghost text-sm">Cancel</button>
+                  <button type="submit" class="btn btn-primary px-6 text-sm">Save Address</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card overflow-hidden">
+        <div class="card-header">
+          <h2 class="card-title">Active Sessions</h2>
+        </div>
+        <div class="p-6">
+          <template x-if="profile.sessions.length > 0">
+            <div>
+              <div x-show="profile.sessions.length > 1" class="mb-4 flex flex-wrap items-center justify-between gap-4 border-b border-neutral-100 pb-4 dark:border-neutral-800" style="display: none;">
+                <div class="flex items-center gap-2">
+                  <input type="checkbox" class="checkbox" x-model="selectAll" @change="toggleAllSessions()" id="selectAllSessions" />
+                  <label for="selectAllSessions" class="cursor-pointer text-sm font-medium text-neutral-600 select-none dark:text-neutral-400">Select All</label>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button x-show="selectedSessions.length > 0" @click="deleteSelectedSessions()" class="text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300" x-transition>Delete Selected (<span x-text="selectedSessions.length"></span>)</button>
+                </div>
+              </div>
+
+              <div class="divide-y divide-neutral-100 rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+                <template x-for="session in profile.sessions" :key="session.token">
+                  <div class="flex items-center p-4 hover:bg-neutral-50 dark:hover:bg-neutral-900/50">
+                    <div class="mr-4 flex h-8 items-center" x-show="!session.isCurrent">
+                      <input type="checkbox" class="checkbox" :value="session.token" x-model="selectedSessions" />
+                    </div>
+                    <div class="mr-4 flex h-8 w-4 items-center" x-show="session.isCurrent"></div>
+                    <div class="flex flex-1 items-center justify-between">
+                      <div class="flex items-center gap-4 overflow-hidden">
+                        <div class="icon-box icon-box-md" :class="session.isCurrent ? 'icon-box-green' : 'icon-box-neutral'">
+                          <i :data-lucide="(session.os === 'iOS' || session.os === 'Android') ? 'smartphone' : 'monitor'" class="h-5 w-5"></i>
+                        </div>
+
+                        <div class="flex flex-col truncate">
+                          <div class="flex items-center gap-2">
+                            <span class="font-bold text-neutral-900 dark:text-white" x-text="`${session.browser} on ${session.os}`"></span>
+                            <template x-if="session.isCurrent">
+                              <span class="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold text-green-700 dark:bg-green-900/30 dark:text-green-500">This Device</span>
+                            </template>
+                          </div>
+                          <span class="text-sm text-neutral-500 dark:text-neutral-400" x-text="`${session.location} • ${session.loginDate}`"></span>
+                        </div>
+                      </div>
+
+                      <button x-show="!session.isCurrent" @click="delSession(session.token)" class="btn btn-ghost p-2 text-neutral-500 hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-400" title="Log out this device">
+                        <i data-lucide="log-out" class="h-4 w-4"></i>
+                      </button>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+
+          <template x-if="profile.sessions.length === 0">
+            <div class="flex flex-col items-center justify-center py-8 text-neutral-500">
+              <div class="mb-2 rounded-full bg-neutral-100 p-3 dark:bg-neutral-800">
+                <i data-lucide="shield-check" class="size-6 text-neutral-400"></i>
+              </div>
+              <p class="text-sm">No active sessions found.</p>
+            </div>
+          </template>
+        </div>
+      </section>
+    </div>
+  </div>
+{{ end }}
+
+{{ block "js" . }}
+  <script>
+    document.addEventListener("alpine:init", () => {
+      Alpine.data("profilePage", () => ({
+        newPasskeyName: "",
+        newEmail: "",
+        newListTitle: "",
+        showAddrForm: false,
+        showPaymentForm: false,
+        newAddr: { label: "", fullName: "", street1: "", street2: "", city: "", state: "", zip: "", country: "US", phone: "" },
+        newPayment: { category: "Card", name: "", number: "", expiry: "", type: "Visa" },
+        selectAll: false,
+        selectedSessions: [],
+
+        emailStep: 1,
+        newEmailInput: "{{ .PageData.Email }}",
+        emailOtp: "",
+
+        profile: {
+          name: `{{ .PageData.Name }}`,
+          email: `{{ .PageData.Email }}`,
+          business: {{ .PageData.Business }},
+          addresses: [
+            {{ range .PageData.Addresses }}
+            { id: {{ .ID }}, label: `{{ .Label }}`, street: `{{ .Street }}`, city: `{{ .City }}`, zip: `{{ .Zip }}`, isDefault: {{ .IsDefault }} },
+            {{ end }}
+          ],
+          sessions: [
+            {{ range .PageData.Sessions }}
+            { token: `{{ .Token }}`, os: `{{ .OS }}`, browser: `{{ .Browser }}`, location: `{{ .Location }}`, loginDate: `{{ .LoginDate }}`, isCurrent: {{ .IsCurrent }} },
+            {{ end }}
+          ],
+          paymentMethods: [],
+        },
+
+        init() {
+          this.$nextTick(() => lucide.createIcons());
+          this.$watch("profile", () => this.$nextTick(() => lucide.createIcons()));
+          this.$watch("selectedSessions", (v) => {
+            const otherSessions = this.profile.sessions.filter((s) => !s.isCurrent);
+            this.selectAll = otherSessions.length > 0 && v.length === otherSessions.length;
+          });
+        },
+
+        // ALL of your other helper methods stay perfectly identical!
+        addEmail() {
+          if (this.profile.emails.length >= 2) return this.showAlert("Max 2 emails allowed.", "error");
+          if (!this.newEmail.includes("@")) return this.showAlert("Invalid email.", "error");
+          this.profile.emails.push({ id: Date.now(), address: this.newEmail, isPrimary: false });
+          this.newEmail = "";
+          this.showAlert("Email added.", "success");
+        },
+        removeEmail(id) {
+          this.profile.emails = this.profile.emails.filter((e) => e.id !== id);
+        },
+        makeEmailPrimary(id) {
+          this.profile.emails = this.profile.emails.map((e) => ({ ...e, isPrimary: e.id === id }));
+        },
+        async requestEmailChange() {
+          const btn = document.getElementById("reqEmailBtn");
+          btn.disabled = true;
+          btn.querySelector(".spinner").classList.remove("hidden");
+
+          try {
+            const res = await fetch("/api/profile/email/request", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ newEmail: this.newEmailInput }),
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            this.emailStep = 2;
+            this.showAlert("Verification code sent to your new email.", "success");
+          } catch (e) {
+            this.showAlert(e.message, "error");
+          } finally {
+            btn.disabled = false;
+            btn.querySelector(".spinner").classList.add("hidden");
+          }
+        },
+
+        async verifyEmailChange() {
+          if (!this.emailOtp) return;
+          const btn = document.getElementById("verifyEmailBtn");
+          btn.disabled = true;
+          btn.querySelector(".spinner").classList.remove("hidden");
+
+          try {
+            const res = await fetch("/api/profile/email/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ token: this.emailOtp }),
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            this.profile.email = this.newEmailInput;
+            this.emailStep = 1;
+            this.emailOtp = "";
+            this.showAlert("Email updated successfully!", "success");
+          } catch (e) {
+            this.showAlert(e.message, "error");
+          } finally {
+            btn.disabled = false;
+            btn.querySelector(".spinner").classList.add("hidden");
+          }
+        },
+
+        addPaymentMethod() {
+          const isCard = this.newPayment.category === "Card";
+          let name, details, type;
+          if (isCard) {
+            if (!this.newPayment.number || !this.newPayment.expiry) return;
+            type = this.newPayment.type;
+            name = `${type} ending in ${this.newPayment.number.slice(-4)}`;
+            details = `Expires ${this.newPayment.expiry}`;
+          } else {
+            if (!this.newPayment.number) return;
+            type = "Bank";
+            name = "Bank Account";
+            details = `Acct ending in ${this.newPayment.number.slice(-4)}`;
+          }
+          this.profile.paymentMethods.push({ id: Date.now(), type, name, details, isDefault: this.profile.paymentMethods.length === 0 });
+          this.newPayment = { category: "Card", name: "", number: "", expiry: "", type: "Visa" };
+          this.showPaymentForm = false;
+          this.showAlert("Payment method added.", "success");
+        },
+        removePaymentMethod(id) {
+          if (confirm("Remove this payment method?")) this.profile.paymentMethods = this.profile.paymentMethods.filter((p) => p.id !== id);
+        },
+        makePaymentDefault(id) {
+          this.profile.paymentMethods = this.profile.paymentMethods.map((p) => ({ ...p, isDefault: p.id === id }));
+          this.showAlert("Default payment method updated.", "success");
+        },
+        async addAddress() {
+          if (!this.newAddr.street1 || !this.newAddr.city) return;
+          try {
+            const res = await fetch("/api/profile/address", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(this.newAddr),
+            });
+
+            if (!res.ok) throw new Error("Failed to save address");
+            const data = await res.json();
+
+            this.profile.addresses.push({
+              id: data.id,
+              label: this.newAddr.label,
+              street: `${this.newAddr.street1} ${this.newAddr.street2}`.trim(),
+              city: this.newAddr.city,
+              zip: this.newAddr.zip,
+              isDefault: data.isDefault,
+            });
+
+            this.newAddr = { label: "", fullName: "", street1: "", street2: "", city: "", state: "", zip: "", country: "US", phone: "" };
+            this.showAddrForm = false;
+            this.showAlert("Address saved.", "success");
+          } catch (e) {
+            this.showAlert(e.message, "error");
+          }
+        },
+
+        async removeAddress(id) {
+          if (!confirm("Remove this address?")) return;
+          try {
+            const res = await fetch(`/api/profile/address/${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Failed to delete");
+            this.profile.addresses = this.profile.addresses.filter((a) => a.id !== id);
+            this.showAlert("Address removed.", "success");
+          } catch (e) {
+            this.showAlert(e.message, "error");
+          }
+        },
+
+        async makeAddressDefault(id) {
+          try {
+            const res = await fetch(`/api/profile/address/${id}/default`, { method: "PUT" });
+            if (!res.ok) throw new Error("Failed to set default");
+            this.profile.addresses = this.profile.addresses.map((a) => ({
+              ...a,
+              isDefault: a.id === id,
+            }));
+            this.showAlert("Default address updated.", "success");
+          } catch (e) {
+            this.showAlert(e.message, "error");
+          }
+        },
+
+        async saveGeneral() {
+          const btn = document.getElementById("saveGeneralBtn");
+          if (btn) {
+            btn.disabled = true;
+            btn.querySelector(".spinner").classList.remove("hidden");
+          }
+
+          try {
+            const res = await fetch("/api/profile/general", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: this.profile.name }),
+            });
+
+            if (!res.ok) throw new Error(await res.text());
+
+            this.showAlert("Name saved successfully.", "success");
+          } catch (e) {
+            this.showAlert(`Failed to save: ${e.message}`, "error");
+          } finally {
+            if (btn) {
+              btn.disabled = false;
+              btn.querySelector(".spinner").classList.add("hidden");
+            }
+          }
+        },
+        async delSession(token) {
+          if (!confirm("Log out this device?")) return;
+
+          try {
+            const res = await fetch(`/session/del/${encodeURIComponent(token)}`, { method: "DELETE" });
+            if (!res.ok) throw new Error(await res.text());
+
+            this.profile.sessions = this.profile.sessions.filter((s) => s.token !== token);
+            this.selectedSessions = this.selectedSessions.filter((t) => t !== token);
+            this.showAlert("Device logged out successfully.", "success");
+          } catch (error) {
+            this.showAlert(`Failed to log out: ${error.message}`, "error");
+          }
+        },
+        toggleAllSessions() {
+          this.selectedSessions = this.selectAll ? this.profile.sessions.filter((s) => !s.isCurrent).map((s) => s.token) : [];
+        },
+        async deleteSelectedSessions() {
+          if (!this.selectedSessions.length) return;
+          if (!confirm(`Log out ${this.selectedSessions.length} selected devices?`)) return;
+
+          let successCount = 0;
+
+          for (const token of this.selectedSessions) {
+            try {
+              const res = await fetch(`/session/del/${encodeURIComponent(token)}`, { method: "DELETE" });
+              if (res.ok) successCount++;
+            } catch (error) {
+              console.error("Failed to delete session", token);
+            }
+          }
+
+          this.profile.sessions = this.profile.sessions.filter((s) => !this.selectedSessions.includes(s.token));
+          this.selectedSessions = [];
+          this.selectAll = false;
+
+          this.showAlert(`Logged out ${successCount} session(s).`, "success");
+        },
+        showAlert(msg, type = "success") {
+          const box = document.getElementById("statusBox");
+          document.getElementById("statusText").innerText = msg;
+          box.classList.remove("hidden", "bg-red-50", "text-red-800", "bg-green-50", "text-green-800");
+          if (type === "error") {
+            box.classList.add("bg-red-50", "text-red-800", "dark:bg-red-900/20", "dark:text-red-400");
+          } else {
+            box.classList.add("bg-green-50", "text-green-800", "dark:bg-green-900/20", "dark:text-green-400");
+          }
+          setTimeout(() => box.classList.add("hidden"), 4000);
+        },
+        setLoading(l) {
+          const btn = document.getElementById("addKeyBtn");
+          if (btn) {
+            btn.disabled = l;
+            btn.querySelector(".spinner").classList.toggle("hidden", !l);
+          }
+        },
+      }));
+    });
+  </script>
+{{ end }}

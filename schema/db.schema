@@ -1,0 +1,151 @@
+db = "postgres"
+url = env("SCHEMA_DB_URL")
+lspConfig = {".go": ["ExecContext(", "QueryContext(", "QueryRowContext(", "Exec(", "Query(", "QueryRow("]}
+
+table addresses (
+  id SERIAL NOT NULL PRIMARY KEY,
+  user_id integer REFERENCES users(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL,
+  address_line1 TEXT NOT NULL,
+  address_line2 TEXT,
+  city TEXT NOT NULL,
+  state TEXT NOT NULL,
+  postal_code TEXT NOT NULL,
+  country TEXT NOT NULL,
+  phone TEXT,
+  is_default_shipping boolean DEFAULT false,
+  is_default_billing boolean DEFAULT false,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
+
+table cart_items (
+  id SERIAL NOT NULL PRIMARY KEY,
+  user_id integer REFERENCES users(id) ON DELETE CASCADE,
+  product_id integer REFERENCES products(id) ON DELETE CASCADE,
+  quantity integer DEFAULT 1,
+  added_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
+
+table categories (
+  id SERIAL NOT NULL PRIMARY KEY,
+  name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  parent_id integer REFERENCES categories(id) ON DELETE SET NULL,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
+
+table employees (
+  id SERIAL NOT NULL PRIMARY KEY,
+  user_id integer REFERENCES users(id) ON DELETE SET NULL,
+  email TEXT NOT NULL UNIQUE,
+  roles jsonb NOT NULL DEFAULT '["Viewer"]',
+  status TEXT NOT NULL DEFAULT 'invited',
+  joined_at timestamp without time zone,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
+
+table order_items (
+  id SERIAL NOT NULL PRIMARY KEY,
+  order_id TEXT REFERENCES orders(id) ON DELETE CASCADE,
+  product_id integer REFERENCES products(id),
+  quantity integer NOT NULL,
+  price numeric NOT NULL
+)
+
+table orders (
+  id TEXT NOT NULL PRIMARY KEY,
+  user_id integer REFERENCES users(id) ON DELETE SET NULL,
+  customer_name TEXT NOT NULL,
+  customer_email TEXT NOT NULL,
+  status TEXT DEFAULT 'Processing',
+  total_amount numeric NOT NULL,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
+
+table payments (
+  id SERIAL NOT NULL PRIMARY KEY,
+  order_id TEXT REFERENCES orders(id) ON DELETE CASCADE,
+  stripe_payment_intent_id TEXT UNIQUE,
+  amount integer NOT NULL,
+  status TEXT,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
+
+table product_categories (
+  product_id integer REFERENCES products(id) ON DELETE CASCADE,
+  category_id integer REFERENCES categories(id) ON DELETE CASCADE
+)
+
+table product_groups (
+  id SERIAL NOT NULL PRIMARY KEY,
+  name TEXT NOT NULL,
+  variation_types jsonb NOT NULL DEFAULT '[]',
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
+
+table product_images (
+  id SERIAL NOT NULL PRIMARY KEY,
+  product_id integer REFERENCES products(id) ON DELETE CASCADE,
+  image_url TEXT NOT NULL,
+  is_primary boolean DEFAULT false,
+  display_order integer DEFAULT 0
+)
+
+table products (
+  id SERIAL NOT NULL PRIMARY KEY,
+  group_id integer REFERENCES product_groups(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  price numeric NOT NULL,
+  discount_price numeric,
+  stock integer DEFAULT 0,
+  gallery jsonb DEFAULT '[]',
+  variations jsonb DEFAULT '{}',
+  is_free_shipping boolean DEFAULT false,
+  is_active boolean DEFAULT true,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
+
+table reviews (
+  id SERIAL NOT NULL PRIMARY KEY,
+  user_id integer REFERENCES users(id) ON DELETE CASCADE,
+  product_id integer REFERENCES products(id) ON DELETE CASCADE,
+  rating integer,
+  comment TEXT,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
+
+table sessions (
+  token TEXT NOT NULL PRIMARY KEY,
+  user_id integer REFERENCES users(id) ON DELETE CASCADE,
+  expires bigint NOT NULL,
+  os TEXT,
+  browser TEXT,
+  ip_address TEXT,
+  location TEXT,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
+
+table support_tickets (
+  id SERIAL NOT NULL PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'open',
+  priority TEXT DEFAULT 'normal',
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
+
+table users (
+  id SERIAL NOT NULL PRIMARY KEY,
+  name TEXT,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT,
+  pending_email TEXT,
+  verified boolean DEFAULT false,
+  verification_token TEXT,
+  token_expires bigint,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+)
