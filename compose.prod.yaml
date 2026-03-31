@@ -9,7 +9,7 @@ services:
       - ecommerce-network
 
   web:
-    image: ghcr.io/gigagrug/ecommerce-web:${IMAGE_TAG:-latest}
+    image: ghcr.io/gigagrug/ecommerce:${IMAGE_TAG:-latest}
     restart: always
     depends_on:
       db:
