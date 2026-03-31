@@ -1,7 +1,6 @@
 services:
   db:
     image: postgres:18.3-alpine
-    restart: always
     ports:
       - "5432:5432"
     environment:
