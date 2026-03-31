@@ -168,35 +168,122 @@ func (app *App) Home(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) Search(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	// 1. Capture Query Parameters
 	q := r.URL.Query().Get("q")
 	cat := r.URL.Query().Get("category")
+	minP := r.URL.Query().Get("minPrice")
+	maxP := r.URL.Query().Get("maxPrice")
+	sortParam := r.URL.Query().Get("sort")
 
-	d2799, d450, d150, d39 := 2799, 450, 150, 39
-	library := []SearchProduct{
-		{1, "Apple iMac 27\"", "Electronics", 2999, &d2799, 5.0, 120, "Fri, Jan 16"},
-		{2, "Playstation 5 DualSense", "Gaming", 499, nil, 4.8, 85, "Sat, Jan 17"},
-		{3, "Xbox Series X Console", "Gaming", 499, &d450, 4.9, 210, "Fri, Jan 16"},
-		{4, "Macbook Pro 14 M3", "Electronics", 1999, nil, 5.0, 45, "Fri, Jan 16"},
-		{5, "Leather Bomber Jacket", "Fashion", 199, &d150, 4.5, 32, "Mon, Jan 19"},
-		{6, "Smart Coffee Maker", "Home", 129, nil, 4.2, 18, "Fri, Jan 16"},
-		{7, "4K Gaming Monitor", "Electronics", 599, &d39, 4.7, 64, "Sun, Jan 18"},
-		{8, "Wireless Mechanical Keyboard", "Electronics", 149, nil, 4.6, 92, "Fri, Jan 16"},
-		{9, "Lego Star Wars Set", "Toys", 89, nil, 4.9, 200, "Tue, Jan 20"},
-		{10, "RC Drift Car", "Toys", 45, &d39, 4.3, 56, "Wed, Jan 21"},
+	// 2. Build the Base Query
+	// We use subqueries for ratings/reviews to keep the logic contained.
+	// COALESCE(p.discount_price, p.price) handles the "actual" price for filtering/sorting.
+	query := `
+		SELECT 
+			p.id, p.name, g.name as category_name, p.price, p.discount_price, p.gallery,
+			COALESCE((SELECT AVG(rating) FROM reviews WHERE product_id = p.id), 0) as avg_rating,
+			COALESCE((SELECT COUNT(*) FROM reviews WHERE product_id = p.id), 0) as review_count
+		FROM products p
+		JOIN product_groups g ON p.group_id = g.id
+		WHERE p.is_active = true
+	`
+
+	var args []any
+	argID := 1
+
+	// 3. Append Dynamic Filters
+	if q != "" {
+		query += fmt.Sprintf(" AND (p.name ILIKE $%d OR p.description ILIKE $%d)", argID, argID)
+		args = append(args, "%"+q+"%")
+		argID++
 	}
+
+	if cat != "" {
+		query += fmt.Sprintf(" AND g.name ILIKE $%d", argID)
+		args = append(args, "%"+cat+"%")
+		argID++
+	}
+
+	if minPrice, err := strconv.ParseFloat(minP, 64); err == nil {
+		query += fmt.Sprintf(" AND COALESCE(p.discount_price, p.price) >= $%d", argID)
+		args = append(args, minPrice)
+		argID++
+	}
+
+	if maxPrice, err := strconv.ParseFloat(maxP, 64); err == nil {
+		query += fmt.Sprintf(" AND COALESCE(p.discount_price, p.price) <= $%d", argID)
+		args = append(args, maxPrice)
+		argID++
+	}
+
+	// 4. Handle Sorting
+	switch sortParam {
+	case "price_asc":
+		query += " ORDER BY COALESCE(p.discount_price, p.price) ASC"
+	case "price_desc":
+		query += " ORDER BY COALESCE(p.discount_price, p.price) DESC"
+	case "rating":
+		query += " ORDER BY avg_rating DESC"
+	case "newest":
+		query += " ORDER BY p.created_at DESC"
+	default:
+		query += " ORDER BY p.id DESC" // Default "Featured" sorting
+	}
+
+	// 5. Execute Query
+	rows, err := app.DB.Query(ctx, query, args...)
+	if err != nil {
+		app.Logger.Error("Search query failed", "error", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
 
 	var results []SearchProduct
-	for _, p := range library {
-		if (q == "" || contains(p.Name, q)) &&
-			(cat == "" || contains(p.Category, cat)) {
-			results = append(results, p)
+	for rows.Next() {
+		var p SearchProduct
+
+		// Note: We cast float prices to int to match your SearchProduct struct
+		var priceFloat, avgRating float64
+		var discPriceFloat sql.NullFloat64
+		var galleryJSON []byte
+
+		err := rows.Scan(&p.ID, &p.Name, &p.Category, &priceFloat, &discPriceFloat, &galleryJSON, &avgRating, &p.Reviews)
+		if err != nil {
+			continue
 		}
+
+		p.Price = int(priceFloat)
+		if discPriceFloat.Valid {
+			v := int(discPriceFloat.Float64)
+			p.DiscountPrice = &v
+		}
+
+		p.Rating = avgRating
+
+		// Logic for UI placeholder: Non-member delivery (hardcoded for now)
+		p.NonMemberDelivery = time.Now().AddDate(0, 0, 3).Format("Mon, Jan 02")
+		var gallery []string
+		_ = json.Unmarshal(galleryJSON, &gallery)
+		p.Image = "https://placehold.co/400x400?text=No+Image" // Fallback image
+		if len(gallery) > 0 && gallery[0] != "" {
+			p.Image = gallery[0]
+		}
+		results = append(results, p)
 	}
 
+	// 6. Render the Page
 	pageData := struct {
 		Products []SearchProduct
 	}{
 		Products: results,
+	}
+
+	if pageData.Products == nil {
+		pageData.Products = []SearchProduct{}
 	}
 
 	app.renderPage(w, r, pageData, "templates/search.html")
@@ -1264,6 +1351,7 @@ type SearchProduct struct {
 	Rating            float64
 	Reviews           int
 	NonMemberDelivery string
+	Image             string
 }
 type StoreDetail struct {
 	Name       string
