@@ -1,0 +1,78 @@
+name: Production Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get GitHub Runner IP
+        id: runner_ip
+        run: echo "ip=$(curl -s https://api.ipify.org)" >> $GITHUB_OUTPUT
+
+      - name: Install Hetzner CLI
+        uses: hetznercloud/setup-hcloud@v1
+
+      - name: Open Temporary SSH Firewall
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
+        run: |
+          FW_NAME="gha-ssh-${{ github.run_id }}"
+          echo "FW_NAME=$FW_NAME" >> $GITHUB_ENV
+          echo "Creating temporary firewall: $FW_NAME allowing IP ${{ steps.runner_ip.outputs.ip }}"
+
+          hcloud firewall create --name $FW_NAME
+          hcloud firewall add-rule $FW_NAME --direction in --port 22 --protocol tcp --source-ips ${{ steps.runner_ip.outputs.ip }}/32
+          hcloud firewall apply-to-resource $FW_NAME --type server --server ${{ secrets.HETZNER_SERVER_NAME }}
+          sleep 5
+
+      - name: Copy Compose File
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.HETZNER_IP }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          source: "compose.prod.yaml"
+          target: "/root/ecommerce/"
+
+      - name: Deploy via Docker Compose
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_IP }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            cd /root/ecommerce/
+
+            # Docker Compose automatically loads the .env file in this directory
+
+            echo "Pulling latest images..."
+            docker compose -f compose.prod.yaml pull
+
+            echo "Tearing down existing environment..."
+            docker compose -f compose.prod.yaml down
+
+            echo "Starting new environment..."
+            docker compose -f compose.prod.yaml up -d
+
+            # Brief pause to allow initialization
+            sleep 5
+
+            # Verify the web container didn't instantly crash
+            if [ -z "$(docker compose -f compose.prod.yaml ps -q web)" ] || [ "$(docker inspect -f '{{.State.Status}}' $(docker compose -f compose.prod.yaml ps -q web))" != "running" ]; then
+              echo "Error: Web container failed to start properly."
+              exit 1
+            fi
+
+      - name: Close Temporary SSH Firewall
+        if: always()
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
+        run: |
+          echo "Deleting temporary firewall: ${{ env.FW_NAME }}"
+          hcloud firewall delete ${{ env.FW_NAME }} || echo "Firewall already deleted or not found."

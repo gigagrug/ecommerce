@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -10,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"math/big"
 	"net"
 	"net/http"
@@ -19,18 +17,9 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/resend/resend-go/v3"
 	"golang.org/x/crypto/bcrypt"
 )
-
-type App struct {
-	DB               *pgxpool.Pool
-	Logger           *slog.Logger
-	AppVersion       string
-	RESEND_KEY_ENV   string
-	RESEND_EMAIL_ENV string
-}
 
 type User struct {
 	ID                int64
@@ -261,7 +250,6 @@ func (app *App) StartRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// FIX: Enforce lowercase emails
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 
 	if req.Email == "" || req.Password == "" {
@@ -360,7 +348,6 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// FIX: Enforce lowercase emails on login
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 
 	user, err := app.GetUserByEmail(ctx, req.Email)
@@ -411,7 +398,6 @@ func (app *App) Login(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   int(30 * 24 * 60 * 60),
 	})
 
-	// FIX: Route active employees to dashboard and customers to home
 	var isEmployee bool
 	_ = app.DB.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM employees WHERE user_id = $1 AND status = 'active')", user.ID).Scan(&isEmployee)
 
@@ -437,7 +423,6 @@ func (app *App) ResendVerificationToken(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// FIX: Enforce lowercase emails
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 
 	user, err := app.GetUserByEmail(ctx, req.Email)
@@ -844,26 +829,6 @@ func getClientIP(r *http.Request) string {
 	}
 
 	return ip
-}
-
-func (app *App) WriteJSON(w http.ResponseWriter, r *http.Request, status int, data any) {
-	var buf bytes.Buffer
-	encoder := json.NewEncoder(&buf)
-	encoder.SetEscapeHTML(false)
-	err := encoder.Encode(data)
-	if err != nil {
-		app.Logger.Error("JSON encoding failed", "error", err, "path", r.URL.Path)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_, err = buf.WriteTo(w)
-	if err != nil {
-		app.Logger.Warn("Failed to send response to client", "error", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
 }
 
 func (app *App) sendVerificationEmail(recipientEmail, token string) error {

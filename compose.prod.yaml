@@ -1,6 +1,7 @@
 services:
   tunnel:
     image: cloudflare/cloudflared:latest
+    pull_policy: always
     restart: always
     environment:
       - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
@@ -9,7 +10,8 @@ services:
       - ecommerce-network
 
   web:
-    image: ghcr.io/gigagrug/ecommerce:${IMAGE_TAG:-latest}
+    image: ghcr.io/gigagrug/ecommerce:latest
+    pull_policy: always
     restart: always
     depends_on:
       db:
@@ -32,6 +34,7 @@ services:
 
   db:
     image: postgres:18.3-alpine
+    pull_policy: always
     restart: always
     ports:
       - "5432:5432"
