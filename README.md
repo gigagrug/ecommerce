@@ -1,7 +1,7 @@
 # Go E-Commerce Platform
 A high-performance, containerized e-commerce backend API and storefront engine. Designed with a focus on system optimization, secure payment processing, and automated cloud deployments, this platform handles the full lifecycle of an online storefront—from inventory management and dynamic product variations to secure checkout and role-based administration.
 
-Built as a lead developer project in March 2026, this system avoids heavy web frameworks in favor of Go's robust standard library and raw SQL, ensuring maximum performance and maintainability.
+Built as a lead developer project, this system avoids heavy web frameworks in favor of Go's robust standard library and raw SQL, ensuring maximum performance and maintainability.
 
 ## 🛠 Technical Stack
 - Language: Go (Golang) leveraging Go 1.22+ standard library routing.
